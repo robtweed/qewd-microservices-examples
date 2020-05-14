@@ -24,7 +24,7 @@ If you are running more than one QEWD MicroService on the same physical Windows 
   - and you may choose to connect to the same or different Cach&eacute; or IRIS namespaces from each MicroService
 
 
-# Ensure the Cach&eacute; or IRIS C Callin Service is Enabled
+# Ensure the C Callin Service is Enabled
 
 QEWD uses the [*mg-dbx*](https://github.com/chrisemunt/mg-dbx) 
 module to integrate with Cach&eacute; and IRIS, and *mg-dbx* requires the
@@ -500,8 +500,6 @@ eg your top-level folder structure should look like this:
             |
             |_ configuration
             |
-            |- apis
-            |
             |- node_modules
 
 
@@ -529,12 +527,26 @@ and then start QEWD by typing:
 
 QEWD is ready for use when you see this (the poolsize and port will depend on your *config.json* settings):
 
+
+        starting microService connection to http://192.168.1.74:3001
+        starting microService connection to http://192.168.1.74:3002
+        webServerRootPath = C:\qewd-orchestrator/orchestrator/www/
+        route /api will be handled by qx.router
+        Worker Bootstrap Module file written to node_modules/ewd-qoper8-worker.js
         ========================================================
         ewd-qoper8 is up and running.  Max worker pool size: 2
         ========================================================
         ========================================================
         QEWD.js is listening on port 3000
         ========================================================
+
+
+Notice these lines which show that your *orchestrator* will attempt to
+connect to your MicroServices using the credentials that were in the *config.json*
+file:
+
+        starting microService connection to http://192.168.1.74:3001
+        starting microService connection to http://192.168.1.74:3002
 
 
 The first time you start the *Orchestrator*, it installs a bunch of extra things, so you'll see
@@ -565,13 +577,867 @@ If the *qewd-monitor* application works correctly, then you can be sure that the
 is working correctly and is ready for use.
 
 
+# Setting Up the MicroServices
+
 You're now ready to set up the two MicroServices for this example.
 
+If you remember from the *config.json* file, their logical names are *login_service* and
+*info_service*:
+
+          "microservices": [
+            {
+              "name": "login_service",
+              "host": "192.168.1.74",
+              "port": 3001,
+              "apis": {
+                "import": true,
+                "imported": true
+              }
+            },
+            {
+              "name": "info_service",
+              "host": "192.168.1.74",
+              "port": 3002,
+              "apis": {
+                "import": true,
+                "imported": true
+              }
+            }
+          ]
+
+
+## Setting Up the *login_service* MicroService
+
+In this example, I'll be creating the *login_service* MicroService as a standalone QEWD
+instance on the same Windows machine as the *Orchestrator*.  However, it could be created on any
+other Windows (or Linux / Raspberry Pi) server.
+
+In this example, the IP address of the Windows server is assumed to be *192.168.1.74*
+
+Setting up a MicroService is actually very similar to setting up the *Orchestrator*, so where 
+detailed explanations of steps are required, look back at the equivalent step in the *Orchestrator*
+instructions previously in this document.
+
+Since, in this example, I'm running on the same Windows server and using the same instance
+of Cach&eacute; or IRIS as the *Orchestrator*, I don't need to worry about 
+[installing Node.js](#install-nodejs) or 
+[enabling the C Callin Interface](#ensure-the-c-callin-service-is-enabled).  
+Of course, if you're setting up the MicroService on a different
+Windows server, you'll need to check and possibly repeat those steps.
+
+
+### Create a QEWD Installation Folder
+
+The first step is to create a new QEWD installation folder (ie separate from the one you
+created for the *Orchestrator*). In this example I'll create the folder:
+
+        C:\qewd-login-service
+
+
+### Create the *package.json* file
+
+Within this new QEWD installation folder, create a file named *package.json*.  Its contents
+will be indentical to the one you created for the *Orchestrator*, ie:
+
+        {
+          "name": "qewd-up",
+          "version": "1.0.0",
+          "description": "Automated QEWD Builder",
+          "author": "Rob Tweed <rtweed@mgateway.com>",
+          "scripts": {
+            "start": "node node_modules/qewd/up/run_native"
+          },
+          "dependencies": {
+            "qewd": ""
+          }
+        }
+
+### Create the *configuration* folder
+
+Next, create a folder named *configuration* within the QEWD installation folder
+
+
+### Create the *config.json* file
+
+Within the *configuration* folder, you now create the *config.json* file.  This is similar to
+ the one you created for the *Orchestrator*, but a lot simpler. Refer back to
+the [*Orchestrator*](#configjson-file) for an explanation of the properties.
+
+Copy and paste the following content into it:
+
+        {
+          "qewd": {
+            "poolSize": 2,
+            "port": 3001,
+            "database": {
+              "type": "dbx",
+              "params": {
+                "database": "Cache",
+                "path": "C:\\InterSystems\\Cache2015\\Mgr",
+                "username": "_SYSTEM",
+                "password": "SYS",
+                "namespace": "USER"
+              }
+            }
+          },
+          "imported": true,
+          "jwt": {
+            "secret": "f4b5659e-1556-451f-a80f-7afc70ca1f06"
+          }
+        }
+
+
+Three key things to notice:
+
+- the listener port must be different from that used by the *Orchestrator*, so we're using port
+3001 in this example
+
+- the JWT Secret **MUST** be the same as that defined in the *Orchestrator's* *config.json* file
+
+- in this example we'll be connecting to the same Cache&eacute; system as the *Orchestrator,
+and using the same namespace.  Depending on your circumstances you could use a different
+namespace for this service.
+
+
+### Create the *routes.json* file
+
+Within the *configuration* folder, you next create the *routes.json* file.  This is somewhat
+different from the one we defined for the *Orchestrator* and just defines the
+routes handled by the MicroService.  In this example there is only one: the API used to
+login.
+
+Copy and paste the following content into it:
+
+        [
+          {
+            "uri": "/api/login",
+            "method": "POST",
+            "handler": "login",
+            "authenticate": false
+          }
+        ]
+
+Most of the route object properties are the same as [described earlier](#routesjson-file),
+but MicroService route objects include the name of the JavaScript module that will actually
+handle the REST API.  In this case, it will be a module named *login*.  We'll see how and where
+that is defined in a moment.
+
+You'll see that otherwise, this is almost identical to the corresponding route object defined
+in the *Orchestrator*.
+
+Every REST API that you want to make available in a MicroService **must** also be defined
+in the *Orchestrator's* *routes.json* file.
+
+
+### Create the *login* Handler Module
+
+We now must create the module that will handle the *POST /api/login* REST API.
+
+Within your MicroService's QEWD installation folder, create a sub-folder named *apis*.
+Your MicroService's folder structure should now look like this:
+
+        C:\qewd-login-service
+            |
+            |_ package.json
+            |
+            |_ configuration
+            |     |
+            |     |- config.json
+            |     |
+            |     |- routes.json
+            |
+            |- apis
+
+
+Each of your MicroService's handler names are defined within this *apis* sub-folder. In the
+case of this *login_service* MicroService, we only have one, named *login*, so create that as a 
+sub-folder of *apis*, ie:
+
+        C:\qewd-login-service
+            |
+            |_ package.json
+            |
+            |_ configuration
+            |     |
+            |     |- config.json
+            |     |
+            |     |- routes.json
+            |
+            |- apis
+                 |
+                 |- login
+
+
+QEWD REST API handlers are defined as a Node.js module file named *index.js* within the
+correspondingly-named api sub-folder, so next, create a text file named *index.js* within the
+*login* sub-folder, ie:
+
+        C:\qewd-login-service
+            |
+            |_ package.json
+            |
+            |_ configuration
+            |     |
+            |     |- config.json
+            |     |
+            |     |- routes.json
+            |
+            |- apis
+                 |
+                 |- login
+                       |
+                       |- index.js
+
+
+Paste the following content into the *index.js* file:
+
+
+        module.exports = function(args, finished) {
+          
+          let body = args.req.body;
+          if (!body) {
+            return finished({error: 'Invalid login attempt'});
+          }
+          let username = body.username;
+          if (!username || username === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+          let password = body.password;
+          if (!password || password === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+          
+          if (username !== 'rob' || password !== 'secret') {
+            return finished({error: 'Invalid login attempt'});
+          }
+          
+          args.session.timeout = 1200;
+          args.session.authenticated = true;
+          args.session.username = username;
+          
+          finished({
+            ok: true
+          });
+        };
+
+
+Let's step through this handler module:
+
+- the signature of **all** QEWD REST API handler modules is:
+
+        module.exports = function(args, finished) {
+          // module logic goes here
+        };
+
+  - the *args* argument provides access to all the content of the incoming REST request
+  - the *finished* argument provides the function you should invoke when your handler
+module logic completes.  The *finished()* function does two things:
+
+    - it returns the JSON response object you specify as its argument back to the REST client
+    - it tells QEWD that you have finished with the Worker Process, allowing QEWD to return it
+to its available pool ready for handling the next queued incoming request
+
+
+- the */api/login* request is a POST request that should include a JSON body payload
+containing the username and password.  The POSTed body is made available by QEWD in
+*args.req.body*, so the first thing we'll do is check that a body exists.  If it
+is we'll send an error object back to the REST Client and finish processing:
+
+          let body = args.req.body;
+          if (!body) {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+- next we'll check that a *username* property has been sent in the body JSON payload, and
+that it isn't simply an empty string.  An error object is returned to the REST client in
+either of these situations:
+
+          let username = body.username;
+          if (!username || username === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+- we then do a similar test for the password:
+
+          let password = body.password;
+          if (!password || password === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+- now that we have detected a username and password in the incoming request, we
+must check that they are valid.  In a production system you'd usually do that by
+checking in a user authentication class or global in your Cach&eacute; or IRIS system.
+
+  However, in this example I've simply hard-coded a check:
+
+  - the username must be *rob*
+  - the password must be *secret*
+
+
+          if (username !== 'rob' || password !== 'secret') {
+            return finished({error: 'Invalid login attempt 4'});
+          }
+
+  Feel free to modify the module to make use of your own authentication database.
+
+- if the username and password are valid, we now do the following:
+
+          args.session.timeout = 1200;
+          args.session.authenticated = true;
+          args.session.username = username;
+
+  The JWT that has been created automatically at this point by QEWD is made available
+to your API handler module as *args.session*, and you can augment its content.
+
+  Some of the JWT properties are reserved names and have a special meaning: *timeout* and
+*authenticated* are two such properties:
+
+  - timeout: sets the expiry timeout in seconds of the JWT.  The JWT's expiry time will
+be automatically extended by this amount every time a request authenticated with the JWT
+is processed by a QEWD MicroService.
+
+  - authenticated: flags the user/owner of the JWT as having been authenticated, and
+therefore a valid user
+
+You can also add properties of your own that have a meaning relevant to you and not QEWD.
+In this case we're adding the *username* property to hold the user's username within
+the JWT:
+
+          args.session.username = username;
+
+- Finally, we tell QEWD that we have finished and return a response object that simply
+denotes a successful login:
+
+          finished({
+            ok: true
+          });
+
+
+### Install QEWD
+
+We've now created everything needed for the *login_service* MicroService.
+
+We now install QEWD in the same way as for the *Orchestrator*.  So, open another
+Windows Console session and type:
+
+        cd \qewd-login-service
+
+        npm install
+
+
+### Start the MicroService
+
+A MicroService is started similarly to the *Orchestrator*, but we add the MicroService's
+logical name after *npm start*, ie:
+
+
+        npm start login_service
+
+
+As with the *Orchestrator*, the first time you start the MicroService, QEWD installs a
+bunch of additional stuff for you, such as the *qewd-monitor* application.  It will then start and
+you should see:
+
+
+        ========================================================
+        ewd-qoper8 is up and running.  Max worker pool size: 2
+        ========================================================
+        ========================================================
+        QEWD.js is listening on port 3001
+        ========================================================
+
+
+If everything has been correctly configured on the *Orchestrator* and your
+MicroService, after a second or so, you'll then see activity on both the
+*Orchestrator* and MicroService - something like the following:
+
+#### MicroService:
+
+        Thu, 14 May 2020 17:18:16 GMT; worker 5068 received message: {"type":"ewd-regist
+        er","application":"login_service","jwt":true,"socketId":"OpEFvhCtopEsk-jmAAAA","
+        ipAddress":"::ffff:192.168.1.74"}
+        **** jwtHandler encrypt: key = d8693c03147ce74398256b3a8bf21b5b98dfa874b310aeed3
+        be0201f2597fe04
+        **** jwtHandler encrypt: iv = eeb6596f1af5bb87e20adba0c15fc7b2
+        Thu, 14 May 2020 17:18:16 GMT; master process received response from worker 5068
+        : {"type":"ewd-register","finished":true,"message":{"token":"eyJ0eXAiOiJKV1QiLCJ
+        hbGciOiJIUzI1NiJ9.eyJleHAiOjE1ODk0NzY5OTYsImlhdCI6MTU4OTQ3NjY5NiwiaXNzIjoicWV3ZC
+        5qd3QiLCJhcHBsaWNhdGlvbiI6ImxvZ2luX3NlcnZpY2UiLCJ0aW1lb3V0IjozMDAsInFld2QiOiI0Mz
+        I5MjY3YzY0ZTYxNThhNzE4ODIzNjJiZWZjMjJmNTEzYTQ0NTFmY2E0ZmVmMWIyNzgxZjI5YzEwNjJmOD 
+        IyMWMyMmY0Mzk5ZWQxZTIxNzg1ZGVmYzQ1YzA1MGY0NzE0YjU3MDAzOTYxMTIzMTBiMmI1ODQwMTZlMT
+        g0YTE1Y2FhOGU1ZjRhOWU2MWIzMjBiYWI3MGJiZjk0Y2NlZTZjNzNiYTE1Zjk1MWQ3MTY5ZTlmMGE2OT
+        I3NGQ0MjYyMGQifQ.PmWplqTjV0uAdd6u1bxk2zZJEtQ2-IMWiUheAclA4B0"}}
+
+
+#### Orchestrator
+
+        login_service registered
+        http://192.168.1.74:3001 micro-service ready
+
+
+What has happened is that the *Orchestrator* has noticed that the *login_service*
+MicroService has come online, and it automatically establishes a WebSocket connection
+to it.
+
+Should that connection be lost for whatever reason, the *Orchestrator* will automatically
+attempt to reconnect.
+
+You can stop and restart the *Orchestrator* and/or MicroServices in any sequence, but once
+both are online, the *Orchestrator* will automatically reconnect.
+
+
+### Try the Login REST API
+
+Although we've only set up the first MicroService - *login_service*, we can try out its
+REST API.
+
+Using a REST Client (such as PostMan), send a *POST /api/login* request to the
+Orchestrator, and include a JSON payload like this:
+
+        {
+          "username": "rob",
+          "password": "secret"
+        }
+
+Make sure the *Content-type* for your request is *application/json*
+
+You should see activity in both Window Consoles (for the *Orchestrator* and *login_service*
+QEWD systems), and you should get a 200 Response with a JSON response similar to this:
+
+        {"ok":true,"token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.
+        eyJleHAiOjE1ODk0Nzg0ODUsImlhdCI6MTU4OTQ3NzI4NSwiaXNzIjo
+        icWV3ZC5qd3QiLCJhcHBsaWNhdGlvbiI6ImxvZ2luX3NlcnZpY2UiL
+        CJ0aW1lb3V0IjoxMjAwLCJxZXdkIjoiNDMyOTI2N2M2NGU2MTU4YTcxOD
+        gyMzYyYmVmYzIyZjUxM2E0NDUxZmNhNGZlZjFiMjc4MWYyOWMxMDYyZj
+        gyMjFjMjJmNDM5OWVkMWUyMTc4NWRlZmM0NWMwNTBmNDcxNGI1NzAwMz
+        k2MTEyMzEwYjJiNTg0MDE2ZTE4NGExNWNhYThlNWY0YTllNjFiMzIw
+        YmFiNzBiYmY5NGNjZWU2Y2JiMDlmMzVhYWUyMzQwNjhlNTRjYmFkYWQ4O
+        DYwYzMwIiwidXNlcm5hbWUiOiJyb2IifQ.En4yej5F3tvXwESjnpP9640
+        4kSaArjwTkCQsgcC-27g"}
+
+This denotes a successful login!
+
+You'll notice the response that the *login* API handler module returned:
+
+       {ok: true}
+
+but you'll also notice that the response also includes a *token* property which
+is the JWT created by QEWD and returned automatically with the response from
+the API handler module.
+
+The idea is that every subsequent request sent from our REST Client should now include
+this JWT in the HTTP *Authorization* header.
+
+We can actually inspect the JWT and see what it contains.  The easiest way to do this
+is to bring up [*https:jwt.io*](https://jwt.io) in your browser, and paste the
+JWT your received from the *login* API response into its Debugger window panel.
+
+You should see something like this in its Decoded *payload* panel:
+
+        {
+          "exp": 1589478485,
+          "iat": 1589477285,
+          "iss": "qewd.jwt",
+          "application": "login_service",
+          "timeout": 1200,
+          "qewd": "4329267c64e6158a71882362befc22f5
+              13a4451fca4fef1b2781f29c1062f8221c22f
+              4399ed1e21785defc45c050f4714b5700396112
+              310b2b584016e184a15caa8e5f4a9e61b320ba
+              b70bbf94ccee6cbb09f35aae234068e54cb
+              adad8860c30",
+          "username": "rob"
+        }
+
+
+You can see the *timeout* and *username* properties that we added in the *login* API
+handler method logic, which, as shown earlier was:
+
+          args.session.timeout = 1200;
+          args.session.authenticated = true;
+          args.session.username = username;
+
+but what seems to be missing in the JWT payload is the *authenticated* property.  In fact it
+is there, but encrypted into the special, reserved *qewd* property.  It can't therefore
+be seen by a REST user, but, as you'll see, it's automatically decrypted and made available
+to you in your QEWD REST API handler methods via the *args* argument.
+
+So that's it, the *login_service* MicroService is now up and running.
 
 
 
+## Setting Up the *info_service* MicroService
+
+In this example, I'll also be creating the *info_service* MicroService as a standalone QEWD
+instance on the same Windows machine as the *Orchestrator* and the *login_service*
+MicroService.  However, it could be created on any other Windows (or Linux / Raspberry Pi) server.
+
+In this example, the IP address of the Windows server is assumed to be *192.168.1.74*
+
+Setting up the *info_service* MicroService is actually very similar to how we set up
+ the *login_service* MicroService, so where 
+detailed explanations of steps are required, look back at the equivalent step in the
+instructions previously in this document for the *login_service* MicroService.
 
 
+### Create a QEWD Installation Folder
+
+The first step is to create a new QEWD installation folder for
+the *info_service* MicroService. In this example I'll create the folder:
+
+        C:\qewd-info-service
+
+
+### Create the *package.json* file
+
+Within this new QEWD installation folder, create a file named *package.json*.  Its contents
+will be indentical to the one you created for the *Orchestrator*, ie:
+
+        {
+          "name": "qewd-up",
+          "version": "1.0.0",
+          "description": "Automated QEWD Builder",
+          "author": "Rob Tweed <rtweed@mgateway.com>",
+          "scripts": {
+            "start": "node node_modules/qewd/up/run_native"
+          },
+          "dependencies": {
+            "qewd": ""
+          }
+        }
+
+### Create the *configuration* folder
+
+Next, create a folder named *configuration* within the QEWD installation folder
+
+
+### Create the *config.json* file
+
+Within the *configuration* folder, you now create the *config.json* file.  This is similar to
+ the one you created for the *Orchestrator*, but a lot simpler. Refer back to
+the [*Orchestrator*](#configjson-file) for an explanation of the properties.
+
+Copy and paste the following content into it:
+
+        {
+          "qewd": {
+            "poolSize": 2,
+            "port": 3002,
+            "database": {
+              "type": "dbx",
+              "params": {
+                "database": "Cache",
+                "path": "C:\\InterSystems\\Cache2015\\Mgr",
+                "username": "_SYSTEM",
+                "password": "SYS",
+                "namespace": "USER"
+              }
+            }
+          },
+          "imported": true,
+          "jwt": {
+            "secret": "f4b5659e-1556-451f-a80f-7afc70ca1f06"
+          }
+        }
+
+
+Three key things to notice:
+
+- the listener port must be different from that used by the *Orchestrator*, so we're using port
+3001 in this example
+
+- the JWT Secret **MUST** be the same as that defined in the *Orchestrator's* *config.json* file
+
+- in this example we'll be connecting to the same Cache&eacute; system as the *Orchestrator,
+and using the same namespace.  Depending on your circumstances you could use a different
+namespace for this service.
+
+
+### Create the *routes.json* file
+
+Within the *configuration* folder, you next create the *routes.json* file.  This is somewhat
+different from the one we defined for the *Orchestrator* and just defines the
+routes handled by the MicroService.  In this example there is only one: the API used to
+login.
+
+Copy and paste the following content into it:
+
+        [
+          {
+            "uri": "/api/login",
+            "method": "POST",
+            "handler": "login",
+            "authenticate": false
+          }
+        ]
+
+Most of the route object properties are the same as [described earlier](#routesjson-file),
+but MicroService route objects include the name of the JavaScript module that will actually
+handle the REST API.  In this case, it will be a module named *login*.  We'll see how and where
+that is defined in a moment.
+
+You'll see that otherwise, this is almost identical to the corresponding route object defined
+in the *Orchestrator*.
+
+Every REST API that you want to make available in a MicroService **must** also be defined
+in the *Orchestrator's* *routes.json* file.
+
+
+### Create the *login* Handler Module
+
+We now must create the module that will handle the *POST /api/login* REST API.
+
+Within your MicroService's QEWD installation folder, create a sub-folder named *apis*.
+Your MicroService's folder structure should now look like this:
+
+        C:\qewd-login-service
+            |
+            |_ package.json
+            |
+            |_ configuration
+            |     |
+            |     |- config.json
+            |     |
+            |     |- routes.json
+            |
+            |- apis
+
+
+Each of your MicroService's handler names are defined within this *apis* sub-folder. In the
+case of this *login_service* MicroService, we only have one, named *login*, so create that as a 
+sub-folder of *apis*, ie:
+
+        C:\qewd-login-service
+            |
+            |_ package.json
+            |
+            |_ configuration
+            |     |
+            |     |- config.json
+            |     |
+            |     |- routes.json
+            |
+            |- apis
+                 |
+                 |- login
+
+
+QEWD REST API handlers are defined as a Node.js module file named *index.js* within the
+correspondingly-named api sub-folder, so next, create a text file named *index.js* within the
+*login* sub-folder, ie:
+
+        C:\qewd-login-service
+            |
+            |_ package.json
+            |
+            |_ configuration
+            |     |
+            |     |- config.json
+            |     |
+            |     |- routes.json
+            |
+            |- apis
+                 |
+                 |- login
+                       |
+                       |- index.js
+
+
+Paste the following content into the *index.js* file:
+
+
+        module.exports = function(args, finished) {
+          
+          let body = args.req.body;
+          if (!body) {
+            return finished({error: 'Invalid login attempt'});
+          }
+          let username = body.username;
+          if (!username || username === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+          let password = body.password;
+          if (!password || password === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+          
+          if (username !== 'rob' || password !== 'secret') {
+            return finished({error: 'Invalid login attempt'});
+          }
+          
+          args.session.timeout = 1200;
+          args.session.authenticated = true;
+          args.session.username = username;
+          
+          finished({
+            ok: true
+          });
+        };
+
+
+Let's step through this handler module:
+
+- the signature of **all** QEWD REST API handler modules is:
+
+        module.exports = function(args, finished) {
+          // module logic goes here
+        };
+
+  - the *args* argument provides access to all the content of the incoming REST request
+  - the *finished* argument provides the function you should invoke when your handler
+module logic completes.  The *finished()* function does two things:
+
+    - it returns the JSON response object you specify as its argument back to the REST client
+    - it tells QEWD that you have finished with the Worker Process, allowing QEWD to return it
+to its available pool ready for handling the next queued incoming request
+
+
+- the */api/login* request is a POST request that should include a JSON body payload
+containing the username and password.  The POSTed body is made available by QEWD in
+*args.req.body*, so the first thing we'll do is check that a body exists.  If it
+is we'll send an error object back to the REST Client and finish processing:
+
+          let body = args.req.body;
+          if (!body) {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+- next we'll check that a *username* property has been sent in the body JSON payload, and
+that it isn't simply an empty string.  An error object is returned to the REST client in
+either of these situations:
+
+          let username = body.username;
+          if (!username || username === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+- we then do a similar test for the password:
+
+          let password = body.password;
+          if (!password || password === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+- now that we have detected a username and password in the incoming request, we
+must check that they are valid.  In a production system you'd usually do that by
+checking in a user authentication class or global in your Cach&eacute; or IRIS system.
+
+  However, in this example I've simply hard-coded a check:
+
+  - the username must be *rob*
+  - the password must be *secret*
+
+
+          if (username !== 'rob' || password !== 'secret') {
+            return finished({error: 'Invalid login attempt 4'});
+          }
+
+  Feel free to modify the module to make use of your own authentication database.
+
+- if the username and password are valid, we now do the following:
+
+          args.session.timeout = 1200;
+          args.session.authenticated = true;
+          args.session.username = username;
+
+  The JWT that has been created automatically at this point by QEWD is made available
+to your API handler module as *args.session*, and you can augment its content.
+
+  Some of the JWT properties are reserved names and have a special meaning: *timeout* and
+*authenticated* are two such properties:
+
+  - timeout: sets the expiry timeout in seconds of the JWT.  The JWT's expiry time will
+be automatically extended by this amount every time a request authenticated with the JWT
+is processed by a QEWD MicroService.
+
+  - authenticated: flags the user/owner of the JWT as having been authenticated, and
+therefore a valid user
+
+You can also add properties of your own that have a meaning relevant to you and not QEWD.
+In this case we're adding the *username* property to hold the user's username within
+the JWT:
+
+          args.session.username = username;
+
+- Finally, we tell QEWD that we have finished and return a response object that simply
+denotes a successful login:
+
+          finished({
+            ok: true
+          });
+
+
+### Install QEWD
+
+We've now created everything needed for the *login_service* MicroService.
+
+We now install QEWD in the same way as for the *Orchestrator*.  So, open another
+Windows Console session and type:
+
+        cd \qewd-login-service
+
+        npm install
+
+
+### Start the MicroService
+
+A MicroService is started similarly to the *Orchestrator*, but we add the MicroService's
+logical name after *npm start*, ie:
+
+
+        npm start login_service
+
+
+As with the *Orchestrator*, the first time you start the MicroService, QEWD installs a
+bunch of additional stuff for you, such as the *qewd-monitor* application.  It will then start and
+you should see:
+
+
+        ========================================================
+        ewd-qoper8 is up and running.  Max worker pool size: 2
+        ========================================================
+        ========================================================
+        QEWD.js is listening on port 3001
+        ========================================================
+
+
+If everything has been correctly configured on the *Orchestrator* and your
+MicroService, after a second or so, you'll then see activity on both the
+*Orchestrator* and MicroService - something like the following:
+
+#### MicroService:
+
+        Thu, 14 May 2020 17:18:16 GMT; worker 5068 received message: {"type":"ewd-regist
+        er","application":"login_service","jwt":true,"socketId":"OpEFvhCtopEsk-jmAAAA","
+        ipAddress":"::ffff:192.168.1.74"}
+        **** jwtHandler encrypt: key = d8693c03147ce74398256b3a8bf21b5b98dfa874b310aeed3
+        be0201f2597fe04
+        **** jwtHandler encrypt: iv = eeb6596f1af5bb87e20adba0c15fc7b2
+        Thu, 14 May 2020 17:18:16 GMT; master process received response from worker 5068
+        : {"type":"ewd-register","finished":true,"message":{"token":"eyJ0eXAiOiJKV1QiLCJ
+        hbGciOiJIUzI1NiJ9.eyJleHAiOjE1ODk0NzY5OTYsImlhdCI6MTU4OTQ3NjY5NiwiaXNzIjoicWV3ZC
+        5qd3QiLCJhcHBsaWNhdGlvbiI6ImxvZ2luX3NlcnZpY2UiLCJ0aW1lb3V0IjozMDAsInFld2QiOiI0Mz
+        I5MjY3YzY0ZTYxNThhNzE4ODIzNjJiZWZjMjJmNTEzYTQ0NTFmY2E0ZmVmMWIyNzgxZjI5YzEwNjJmOD 
+        IyMWMyMmY0Mzk5ZWQxZTIxNzg1ZGVmYzQ1YzA1MGY0NzE0YjU3MDAzOTYxMTIzMTBiMmI1ODQwMTZlMT
+        g0YTE1Y2FhOGU1ZjRhOWU2MWIzMjBiYWI3MGJiZjk0Y2NlZTZjNzNiYTE1Zjk1MWQ3MTY5ZTlmMGE2OT
+        I3NGQ0MjYyMGQifQ.PmWplqTjV0uAdd6u1bxk2zZJEtQ2-IMWiUheAclA4B0"}}
+
+
+#### Orchestrator
+
+        login_service registered
+        http://192.168.1.74:3001 micro-service ready
+
+
+What has happened is that the *Orchestrator* has noticed that the *login_service*
+MicroService has come online, and it automatically establishes a WebSocket connection
+to it.
+
+Should that connection be lost for whatever reason, the *Orchestrator* will automatically
+attempt to reconnect.
+
+You can stop and restart the *Orchestrator* and/or MicroServices in any sequence, but once
+both are online, the *Orchestrator* will automatically reconnect.
 
 
 
