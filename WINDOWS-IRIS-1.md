@@ -49,6 +49,7 @@ You first need to [install Node.js](https://nodejs.org) on your Windows machine(
 Do not install earlier versions of Node.js, and if you already have an earlier version of Node.js
 installed, you will need to update it.
 
+----
 
 # The Orchestrator
 
@@ -577,6 +578,8 @@ If the *qewd-monitor* application works correctly, then you can be sure that the
 is working correctly and is ready for use.
 
 
+----
+
 # Setting Up the MicroServices
 
 You're now ready to set up the two MicroServices for this example.
@@ -604,6 +607,9 @@ If you remember from the *config.json* file, their logical names are *login_serv
               }
             }
           ]
+
+
+----
 
 
 ## Setting Up the *login_service* MicroService
@@ -666,6 +672,7 @@ the [*Orchestrator*](#configjson-file) for an explanation of the properties.
 Copy and paste the following content into it:
 
         {
+          "ms_name": "login_service",
           "qewd": {
             "poolSize": 2,
             "port": 3001,
@@ -687,7 +694,13 @@ Copy and paste the following content into it:
         }
 
 
-Three key things to notice:
+Four key things to notice:
+
+- in the *config.json* file for a MicroService, you **MUST** add the *ms_name* property, 
+set to the correct logical name for the MicroService, ie
+in this instance:
+
+          "ms_name": "login_service",
 
 - the listener port must be different from that used by the *Orchestrator*, so we're using port
 3001 in this example
@@ -1064,7 +1077,7 @@ to you in your QEWD REST API handler methods via the *args* argument.
 
 So that's it, the *login_service* MicroService is now up and running.
 
-
+----
 
 ## Setting Up the *info_service* MicroService
 
