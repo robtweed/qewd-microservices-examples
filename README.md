@@ -1,4 +1,4 @@
-# qewd-microservices-examples: Examples of QEWD MicroServices
+# Examples of QEWD MicroServices
  
 Rob Tweed <rtweed@mgateway.com>  
 14 May 2020, M/Gateway Developments Ltd [http://www.mgateway.com](http://www.mgateway.com)  

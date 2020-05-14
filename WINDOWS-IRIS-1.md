@@ -56,7 +56,8 @@ Every QEWD MicroService configuration must have one master QEWD service, known a
 through which all external traffic flows, and whose purpose is to route the incoming requests
 to the correct MicroService to handle each individual request.
 
-Follow the instructions below to set up the Orchestrator system.
+Follow the instructions below to set up the Orchestrator system.  You'll find pre-built
+copies of the files described below [here](./src/windows-iris-1/orchestrator).
 
 
 ## Create a QEWD Installation Folder
@@ -174,7 +175,7 @@ your *config.json* file:
 
 
 
-### IRIS
+#### IRIS
 
         {
           "qewd": {
@@ -371,12 +372,12 @@ QEWD has a built-in mechanism for importing a MicroService's APIs into the *Orch
 *routes.json* file.  However, in this example we don't want to use this, so these properties
 tell QEWD that we've already imported them ourselves.
 
-**Leave these properties unchanged**.
+So, **leave the apis properties unchanged**.
 
 
 
 
-## *routes.json* File
+### *routes.json* File
 
 Although the *Orchestrator* won't, itself, be handling the REST APIs, it needs to know
 what is the valid set of REST APIs that are to be allowed, and also which MicroService
