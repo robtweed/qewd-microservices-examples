@@ -1,0 +1,28 @@
+[
+  {
+    "uri": "/api/login",
+    "method": "POST",
+    "on_microservice": "login_service",
+    "authenticate": false
+  },
+  {
+    "uri": "/api/person",
+    "method": "POST",
+    "on_microservice": "info_service" 
+  },
+  {
+    "uri": "/api/person/:id",
+    "method": "GET",
+    "on_microservice": "info_service" 
+  },
+  {
+    "uri": "/api/person/:id",
+    "method": "PUT",
+    "on_microservice": "info_service" 
+  },
+  {
+    "uri": "/api/person/:id",
+    "method": "DELETE",
+    "on_microservice": "info_service" 
+  }
+]
