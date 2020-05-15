@@ -4,12 +4,12 @@
 
 - [Introduction](#introduction)
 - [Initial Steps](#initial-steps)
-= [The Orchestrator](#the-orchestrator)
+- [The Orchestrator](#the-orchestrator)
 - [Setting up the MicroServices](#setting-up-the-microservices)
   - [login_service](#setting-up-the-login_service-microservice)
   - [info_service](#setting-up-the-info_service-microservice)
-= [Testing the Completed System](#testing-the-completed-system)
-= [Modifying/Maintaining the REST APIs](#modifying--maintaining-the-rest-apis)
+- [Testing the Completed System](#testing-the-completed-system)
+- [Modifying/Maintaining the REST APIs](#modifying--maintaining-the-rest-apis)
 - [MicroService Security](#microservice-security)
 - [QEWD Application Run-time Modes](#qewd-application-run-time-modes)
 
