@@ -1,0 +1,92 @@
+module.exports = function(args, finished) {
+
+  /*
+    Check the JWT to make sure it's for a user who has logged in
+    and has therefore authenticated
+
+    Note that even though this is a reserved/secret property within
+    the JWT, it is automatically decrypted and made available for
+    your use in your handler modules
+  */
+
+  if (!args.session.authenticated) {
+    return finished({error: 'Not authenticated'});
+  }
+
+  /*
+    Next, check the incoming POST body to make sure
+    it exists and contains valid values
+
+    If an error is detected, return an error object as
+    the response
+
+  */
+
+  let body = args.req.body;
+  if (!body) {
+    return finished({error: 'Invalid request'});
+  }
+  let name = body.name;
+  if (!name || name === '') {
+    return finished({error: 'Missing name value'});
+  }
+
+  let gender = body.gender;
+  if (!gender || gender === '') {
+    return finished({error: 'Missing gender value'});
+  }
+
+  let city = body.city;
+  if (!city || city === '') {
+    return finished({error: 'Missing city value'});
+  }
+
+  /*
+
+    The incoming request contained valid values
+    so now we'll save them as a new Person record
+
+    mg-dbx provides the classmethod API which
+    gives us access to Cache/IRIS Classes
+
+    In QEWD, it's exposed via this.db.dbx
+
+  */       
+
+  let db = this.db.dbx;
+
+  /*
+    Instantiate a new Person instance
+  */
+
+  let person = db.classmethod('User.Person', '%New');
+
+  /*
+    mg-dbx allows us to set properties using the setproperty method
+  */
+
+  person.setproperty('Name', name);
+  person.setproperty('Gender', gender);
+  person.setproperty('City', gender);
+  
+  /*
+    person methods are invoked using the mg-dbx method function
+
+    We'll save the person instance, get the id that was allocated to it
+    and close the instance
+
+  */
+
+  person.method('%Save');
+  let id = person.method('%Id');
+  person.method('%Close'); 
+  
+  /*
+    Finish processing, and return the new Person id
+  */
+
+  finished({
+    ok: true,
+    id: id
+  });
+};

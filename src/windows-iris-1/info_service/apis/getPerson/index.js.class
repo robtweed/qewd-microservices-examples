@@ -1,0 +1,71 @@
+module.exports = function(args, finished) {
+
+  /*
+    Check the JWT to make sure it's for a user who has logged in
+    and has therefore authenticated
+  */
+
+  if (!args.session.authenticated) {
+    return finished({error: 'Not authenticated'});
+  }
+
+  /*
+    Next, check that an id has been specified. Variables within the
+    URI path are exposed as properties of args, so:
+
+  */
+
+  if (!args.id || args.id === '') {
+    return finished({error: 'Invalid request'});
+  }
+
+  /*
+    Access the mg-dbx classmethod function to check if
+    a Person record with that id exists
+
+    If not, return an error object
+
+  */
+
+  let db = this.db.dbx;
+
+  let exists = db.classmethod('User.Person', '%ExistsId', args.id);
+  
+  if (exists !== '1') {
+    return finished({error: 'No person exists with id ' + args.id});
+  }
+
+  /*
+    instantiate the specified Person record
+  */
+
+  let person = db.classmethod('User.Person', '%OpenId', args.id);
+
+  /*
+    Properties are accessed via the mg-dbx getproperty function
+  */
+
+  let name = person.getproperty("Name");
+  let gender = person.getproperty("Gender");
+  let city = person.getproperty("City");
+  
+  /*
+    Close the Person object
+  */
+
+  person.method('%Close');
+
+  /*
+    Finish processing, and return the Person data
+  */
+
+  finished({
+    ok: true,
+    data: {
+      name: name,
+      gender: gender,
+      city: city
+    }
+  });
+  
+};

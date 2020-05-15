@@ -1,0 +1,22 @@
+[
+  {
+    "uri": "/api/person",
+    "method": "POST",
+    "handler": "addPerson"
+  },
+  {
+    "uri": "/api/person/:id",
+    "method": "GET",
+    "handler": "getPerson"
+  },
+  {
+    "uri": "/api/person/:id",
+    "method": "PUT",
+    "handler": "editPerson"
+  },
+  {
+    "uri": "/api/person/:id",
+    "method": "DELETE",
+    "handler": "deletePerson"
+  }
+]
