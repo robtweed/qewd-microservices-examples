@@ -707,7 +707,7 @@ in this instance:
 
 - the JWT Secret **MUST** be the same as that defined in the *Orchestrator's* *config.json* file
 
-- in this example we'll be connecting to the same Cache&eacute; system as the *Orchestrator,
+- in this example we'll be connecting to the same Cach&eacute; system as the *Orchestrator,
 and using the same namespace.  Depending on your circumstances you could use a different
 namespace for this service.
 
@@ -1170,7 +1170,7 @@ Remember that:
 
 - the JWT Secret **MUST** be the same as that defined in the *Orchestrator's* *config.json* file
 
-- in this example we'll be connecting to the same Cache&eacute; system as the *Orchestrator,
+- in this example we'll be connecting to the same Cach&eacute; system as the *Orchestrator,
 and using the same namespace.  Depending on your circumstances you might want/need to use a different
 namespace for this service.
 
@@ -1255,8 +1255,8 @@ should look like this:
 
 I'm going to show two versions of each handler module:
 
-- one that demonstrates a simple *person* persistent JSON document using the built-in QEWD-JSdb
-abstraction of the Cach&eactute; / IRIS Global Storage.  In this example, the *person* record
+- one that demonstrates a simple *Person* persistent JSON document using the built-in QEWD-JSdb
+abstraction of the Cach&eacute; / IRIS Global Storage.  In this example, the *Person* record
  will have the structure:
 
         {
@@ -1270,7 +1270,7 @@ abstraction of the Cach&eactute; / IRIS Global Storage.  In this example, the *p
         }
 
 
-- one that demonstrates a *person* class using Cach&eactute; / IRIS classes.  In this example,
+- one that demonstrates a *person* class using Cach&eacute; / IRIS classes.  In this example,
 I'm using the following (deliberately simple) class definition:
 
         Class User.Person Extends %Persistent
@@ -1282,7 +1282,7 @@ I'm using the following (deliberately simple) class definition:
 
 
 Note that the former version using QEWD-JSdb could be ported without change to YottaDB if
-required, whereas the second version is proprietary to Cach&eactute; and/or IRIS.
+required, whereas the second version is proprietary to Cach&eacute; and/or IRIS.
 
 So in the next sections below, I'll explain what the content of each of the four
 *index.js* handler modules should look like, implemented both ways:
@@ -1399,7 +1399,7 @@ A typical request will be:
         };
 
 
-##### Cach&eactute; / IRIS Class
+##### Cach&eacute; / IRIS Class
 
 
         module.exports = function(args, finished) {
@@ -1570,7 +1570,7 @@ eg to fetch the details for a Person with an Id of 23:
         };
 
 
-##### Cach&eactute; / IRIS Class
+##### Cach&eacute; / IRIS Class
 
 
         module.exports = function(args, finished) {
@@ -1744,7 +1744,7 @@ eg to edit the city details for a Person with an Id of 23:
           
         };
 
-##### Cach&eactute; / IRIS Class
+##### Cach&eacute; / IRIS Class
 
 
         module.exports = function(args, finished) {
@@ -1904,7 +1904,7 @@ eg to delete the record for a Person with an Id of 23:
         };
 
 
-##### Cach&eactute; / IRIS Class
+##### Cach&eacute; / IRIS Class
 
 
         module.exports = function(args, finished) {
@@ -2008,6 +2008,12 @@ Using a REST Client such as PostMan, send a login request:
         }
 
 
+Note that **all** REST requests must be sent to the *Orchestrator*, so in my example, I'd
+send the *login* URI to:
+
+        http://192.168.1.74:3000/api/login
+
+
 You should get back a response that includes the authenticated JWT as a property named *token*.
 
 Copy the JWT value.
@@ -2078,7 +2084,48 @@ eg to delete a Person with an id of 1:
 You should get back *ok: true* and an updated copy of the JWT.
 
 
+# Modifying / Maintaining the REST APIs
 
+Feel free to modify the API Handler methods, and try experimenting with adding new
+REST APIs.  You can also try adding another MicroService.
+
+Notes:
+
+- if you modify the *config.json* or *routes.json* file of either the *Orchestrator*
+or a MicroService, you **must** stop and restart that QEWD instance.  QEWD only
+reads and registers the contents of these files at startup.
+
+- if you modify a REST API Handler module, for your changes to take effect, 
+you **must** either:
+
+  - stop and restart the QEWD instance;
+
+  - better still, simply use the *qewd-monitor* or *qewd-monitor-adminui* application
+on that QEWD system to stop all the Worker Processes.  You can do this quite safely at any time.
+QEWD will automatically restart new Worker processes as it requires them.  Indeed, when you stop
+the last of the currently-working Worker Processes, you'll see a new one immediately re-appear.
+
+- If you create a new MicroService, you must ensure that the *Orchestrator* knows where to find
+it by adding it to the array of MicroServices in the *Orchestrator's config.json* file.  You
+must also add the new MicroService's API route objects to the *Orchestrator's routes.json* file.
+You must then restart the *Orchestrator*.
+
+- Take care when you modify any of the *routes.json* or *config.json* files. They **must** only
+contain syntactically-valid JSON.  The QEWD system will start improperly if it cannot parse
+the JSON.  All property names **must be double quoted** and any string values must also
+be double-quoted.  Make sure you don't include extraneous commas - that's something that
+always catches me out.  If in doubt, use an online JSON validator such as
+[jsonlint](https://jsonlint.com/) to find any syntax errors in your JSON.  
+
+
+# MicroService Security
+
+If you are making your REST service publicly available, you should only expose the port
+of the *Orchestrator*, and make sure the QEWD MicroService instances are hidden behind a 
+firewall.
+
+However, you can set up MicroServices on any Internet-facing server, in which case you should
+firewall them to only accept incoming requests from the designated Orchestrator IP address.
 
 
 # QEWD Application Run-Time Modes
