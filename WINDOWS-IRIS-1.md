@@ -1,5 +1,21 @@
 # Standalone QEWD MicroServices with Cach&eacute; or IRIS Natively on Windows
 
+## Contents
+
+- [Introduction](#introduction)
+- [Initial Steps](#initial-steps)
+= [The Orchestrator](#the-orchestrator)
+- [Setting up the MicroServices](#setting-up-the-microservices)
+  - [login_service](#setting-up-the-login_service-microservice)
+  - [info_service](#setting-up-the-info_service-microservice)
+= [Testing the Completed System](#testing-the-completed-system)
+= [Modifying/Maintaining the REST APIs](#modifying--maintaining-the-rest-apis)
+- [MicroService Security](#microservice-security)
+- [QEWD Application Run-time Modes](#qewd-application-run-time-modes)
+
+----
+
+# Introduction
 
 The instructions below explain how to get a set of QEWD Microservices 
 running on a Windows system with Cach&eacute; or IRIS, capable of handling
@@ -23,8 +39,12 @@ If you are running more than one QEWD MicroService on the same physical Windows 
 
   - and you may choose to connect to the same or different Cach&eacute; or IRIS namespaces from each MicroService
 
+----
 
-# Ensure the C Callin Service is Enabled
+# Initial Steps
+
+
+## Ensure the C Callin Service is Enabled
 
 QEWD uses the [*mg-dbx*](https://github.com/chrisemunt/mg-dbx) 
 module to integrate with Cach&eacute; and IRIS, and *mg-dbx* requires the
@@ -42,7 +62,7 @@ Next, navigate the System Management Portal menus as follows:
 - Check the *Service Enabled* box and Click *Save*
 
 
-# Install Node.js
+## Install Node.js
 
 You first need to [install Node.js](https://nodejs.org) on your Windows machine(s). Node.js versions 12.x and 14.x are supported.
 
@@ -2083,6 +2103,7 @@ eg to delete a Person with an id of 1:
 
 You should get back *ok: true* and an updated copy of the JWT.
 
+----
 
 # Modifying / Maintaining the REST APIs
 
@@ -2117,6 +2138,7 @@ be double-quoted.  Make sure you don't include extraneous commas - that's someth
 always catches me out.  If in doubt, use an online JSON validator such as
 [jsonlint](https://jsonlint.com/) to find any syntax errors in your JSON.  
 
+----
 
 # MicroService Security
 
@@ -2127,6 +2149,7 @@ firewall.
 However, you can set up MicroServices on any Internet-facing server, in which case you should
 firewall them to only accept incoming requests from the designated Orchestrator IP address.
 
+----
 
 # QEWD Application Run-Time Modes
 
