@@ -1083,9 +1083,9 @@ So that's it, the *login_service* MicroService is now up and running.
 
 In this example, I'll also be creating the *info_service* MicroService as a standalone QEWD
 instance on the same Windows machine as the *Orchestrator* and the *login_service*
-MicroService.  However, it could be created on any other Windows (or Linux / Raspberry Pi) server.
+MicroService.  However, as berfore, it could be also created on any other Windows (or Linux / Raspberry Pi) server.
 
-In this example, the IP address of the Windows server is assumed to be *192.168.1.74*
+So, as before, the IP address of the Windows server is assumed, in this example, to be *192.168.1.74*
 
 Setting up the *info_service* MicroService is actually very similar to how we set up
  the *login_service* MicroService, so where 
@@ -1095,7 +1095,7 @@ instructions previously in this document for the *login_service* MicroService.
 
 ### Create a QEWD Installation Folder
 
-The first step is to create a new QEWD installation folder for
+Create a new QEWD installation folder for
 the *info_service* MicroService. In this example I'll create the folder:
 
         C:\qewd-info-service
@@ -1133,6 +1133,7 @@ the [*Orchestrator*](#configjson-file) for an explanation of the properties.
 Copy and paste the following content into it:
 
         {
+          "ms_name": "info_service",
           "qewd": {
             "poolSize": 2,
             "port": 3002,
@@ -1154,73 +1155,75 @@ Copy and paste the following content into it:
         }
 
 
-Three key things to notice:
+This is almost identical to the version for the *login_service* MicroService.  The
+differences are:
 
-- the listener port must be different from that used by the *Orchestrator*, so we're using port
-3001 in this example
+- the different *ms_name* value:
+
+          "ms_name": "info_service",
+
+- the different (and unique) listener port:
+
+          "port": 3002,
+
+Remember that:
 
 - the JWT Secret **MUST** be the same as that defined in the *Orchestrator's* *config.json* file
 
 - in this example we'll be connecting to the same Cache&eacute; system as the *Orchestrator,
-and using the same namespace.  Depending on your circumstances you could use a different
+and using the same namespace.  Depending on your circumstances you might want/need to use a different
 namespace for this service.
 
 
 ### Create the *routes.json* file
 
-Within the *configuration* folder, you next create the *routes.json* file.  This is somewhat
-different from the one we defined for the *Orchestrator* and just defines the
-routes handled by the MicroService.  In this example there is only one: the API used to
-login.
+Within the *configuration* folder, you next create the *routes.json* file.  As with
+the *login_service's* *routes.json* file, this just defines the
+routes handled by the *info_service* MicroService.
+
+In this example, the *info_service* will be supporting four CRUD REST APIs for a simple
+person document/class.
 
 Copy and paste the following content into it:
 
         [
           {
-            "uri": "/api/login",
+            "uri": "/api/person",
             "method": "POST",
-            "handler": "login",
-            "authenticate": false
+            "handler": "addPerson"
+          },
+          {
+            "uri": "/api/person/:id",
+            "method": "GET",
+            "handler": "getPerson"
+          },
+          {
+            "uri": "/api/person/:id",
+            "method": "PUT",
+            "handler": "editPerson"
+          },
+          {
+            "uri": "/api/person/:id",
+            "method": "DELETE",
+            "handler": "deletePerson"
           }
         ]
 
-Most of the route object properties are the same as [described earlier](#routesjson-file),
-but MicroService route objects include the name of the JavaScript module that will actually
-handle the REST API.  In this case, it will be a module named *login*.  We'll see how and where
-that is defined in a moment.
 
-You'll see that otherwise, this is almost identical to the corresponding route object defined
-in the *Orchestrator*.
+### Create the Handler Modules
 
-Every REST API that you want to make available in a MicroService **must** also be defined
-in the *Orchestrator's* *routes.json* file.
-
-
-### Create the *login* Handler Module
-
-We now must create the module that will handle the *POST /api/login* REST API.
+We now must create the modules that will handle the four CRUD REST APIs defined in
+the *routes.json* file above.
 
 Within your MicroService's QEWD installation folder, create a sub-folder named *apis*.
-Your MicroService's folder structure should now look like this:
-
-        C:\qewd-login-service
-            |
-            |_ package.json
-            |
-            |_ configuration
-            |     |
-            |     |- config.json
-            |     |
-            |     |- routes.json
-            |
-            |- apis
+Your MicroService's folder, and within the *apis* sub-folder, create sub-folders
+using the same names as the handler property values shown above.  Then, in each
+of those folders, create a text file named *index.js*.  In other words, the folder/file structure
+should look like this:
 
 
-Each of your MicroService's handler names are defined within this *apis* sub-folder. In the
-case of this *login_service* MicroService, we only have one, named *login*, so create that as a 
-sub-folder of *apis*, ie:
 
-        C:\qewd-login-service
+        C:\qewd-info-service
             |
             |_ package.json
             |
@@ -1232,225 +1235,848 @@ sub-folder of *apis*, ie:
             |
             |- apis
                  |
-                 |- login
-
-
-QEWD REST API handlers are defined as a Node.js module file named *index.js* within the
-correspondingly-named api sub-folder, so next, create a text file named *index.js* within the
-*login* sub-folder, ie:
-
-        C:\qewd-login-service
-            |
-            |_ package.json
-            |
-            |_ configuration
-            |     |
-            |     |- config.json
-            |     |
-            |     |- routes.json
-            |
-            |- apis
+                 |- addPerson
+                 |     |
+                 |     |- index.js
                  |
-                 |- login
-                       |
-                       |- index.js
+                 |- getPerson
+                 |     |
+                 |     |- index.js
+                 |
+                 |- editPerson
+                 |     |
+                 |     |- index.js
+                 |
+                 |- deletePerson
+                 |     |
+                 |     |- index.js
+                 |
 
 
-Paste the following content into the *index.js* file:
+I'm going to show two versions of each handler module:
 
+- one that demonstrates a simple *person* persistent JSON document using the built-in QEWD-JSdb
+abstraction of the Cach&eactute; / IRIS Global Storage.  In this example, the *person* record
+ will have the structure:
+
+        {
+          "by_id": {
+            {{id}}: {
+              "name": {{name}},
+              "gender": {{gender}},
+              "city": {{city}}
+            }
+          }
+        }
+
+
+- one that demonstrates a *person* class using Cach&eactute; / IRIS classes.  In this example,
+I'm using the following (deliberately simple) class definition:
+
+        Class User.Person Extends %Persistent
+        {
+          Property Name As %String;
+          Property Gender As %String;
+          Property City As %String;
+        }
+
+
+Note that the former version using QEWD-JSdb could be ported without change to YottaDB if
+required, whereas the second version is proprietary to Cach&eactute; and/or IRIS.
+
+So in the next sections below, I'll explain what the content of each of the four
+*index.js* handler modules should look like, implemented both ways:
+
+
+#### *addPerson / index.js*
+
+This will create a new Person record using the name, gender and city values
+within the JSON body payload of a POST /api/person request.  If successful,
+it will return the id allocated to the new Person record.
+
+A typical request will be:
+
+        POST /api/person
+
+        Content-type: application/json
+       
+        {
+          "name": "Rob Tweed",
+          "gender": "male",
+          "city": "Redhill"
+        }
+
+
+##### QEWD-JSdb
 
         module.exports = function(args, finished) {
-          
+
+          /*
+            Check the JWT to make sure it's for a user who has logged in
+            and has therefore authenticated
+
+            Note that even though this is a reserved/secret property within
+            the JWT, it is automatically decrypted and made available for
+            your use in your handler modules
+          */
+
+          if (!args.session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          /*
+            Next, check the incoming POST body to make sure
+            it exists and contains valid values
+
+            If an error is detected, return an error object as
+            the response
+
+          */
+
           let body = args.req.body;
           if (!body) {
-            return finished({error: 'Invalid login attempt'});
+            return finished({error: 'Invalid request'});
           }
-          let username = body.username;
-          if (!username || username === '') {
-            return finished({error: 'Invalid login attempt'});
+          let name = body.name;
+          if (!name || name === '') {
+            return finished({error: 'Missing name value'});
           }
-          let password = body.password;
-          if (!password || password === '') {
-            return finished({error: 'Invalid login attempt'});
+
+          let gender = body.gender;
+          if (!gender || gender === '') {
+            return finished({error: 'Missing gender value'});
           }
+
+          let city = body.city;
+          if (!city || city === '') {
+            return finished({error: 'Missing city value'});
+          }
+
+          /*
+
+            The incoming request contained valid values
+            so now we'll save them as a new Person record
+
+            First, instantiate a Document Node object that
+            represents the Person Global
+
+          */
+
+          let persons = this.db.use('Person');
+
+          /*
+            Create a new Person Id by incrementing the id_counter value
+          */
+
+
+          let id = persons.$('id_counter').increment();
+
+          /*
+            Instantiate a Document Node Object representing the
+            new Person record using the id
+          */
+
+          let person = persons.$(['by_id', id]);
+
+          /*
+            Save the data for this new Person record
+          */
+
+          person.setDocument({
+            name: name,
+            gender: gender,
+            city: city
+          }); 
           
-          if (username !== 'rob' || password !== 'secret') {
-            return finished({error: 'Invalid login attempt'});
-          }
-          
-          args.session.timeout = 1200;
-          args.session.authenticated = true;
-          args.session.username = username;
-          
+          /*
+            Finish processing, and return the new Person id
+          */
+
           finished({
-            ok: true
+            ok: true,
+            id: id
           });
         };
 
 
-Let's step through this handler module:
+##### Cach&eactute; / IRIS Class
 
-- the signature of **all** QEWD REST API handler modules is:
 
         module.exports = function(args, finished) {
-          // module logic goes here
-        };
 
-  - the *args* argument provides access to all the content of the incoming REST request
-  - the *finished* argument provides the function you should invoke when your handler
-module logic completes.  The *finished()* function does two things:
+          /*
+            Check the JWT to make sure it's for a user who has logged in
+            and has therefore authenticated
 
-    - it returns the JSON response object you specify as its argument back to the REST client
-    - it tells QEWD that you have finished with the Worker Process, allowing QEWD to return it
-to its available pool ready for handling the next queued incoming request
+            Note that even though this is a reserved/secret property within
+            the JWT, it is automatically decrypted and made available for
+            your use in your handler modules
+          */
 
+          if (!args.session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
 
-- the */api/login* request is a POST request that should include a JSON body payload
-containing the username and password.  The POSTed body is made available by QEWD in
-*args.req.body*, so the first thing we'll do is check that a body exists.  If it
-is we'll send an error object back to the REST Client and finish processing:
+          /*
+            Next, check the incoming POST body to make sure
+            it exists and contains valid values
+
+            If an error is detected, return an error object as
+            the response
+
+          */
 
           let body = args.req.body;
           if (!body) {
-            return finished({error: 'Invalid login attempt'});
+            return finished({error: 'Invalid request'});
+          }
+          let name = body.name;
+          if (!name || name === '') {
+            return finished({error: 'Missing name value'});
           }
 
-- next we'll check that a *username* property has been sent in the body JSON payload, and
-that it isn't simply an empty string.  An error object is returned to the REST client in
-either of these situations:
-
-          let username = body.username;
-          if (!username || username === '') {
-            return finished({error: 'Invalid login attempt'});
+          let gender = body.gender;
+          if (!gender || gender === '') {
+            return finished({error: 'Missing gender value'});
           }
 
-- we then do a similar test for the password:
-
-          let password = body.password;
-          if (!password || password === '') {
-            return finished({error: 'Invalid login attempt'});
+          let city = body.city;
+          if (!city || city === '') {
+            return finished({error: 'Missing city value'});
           }
 
-- now that we have detected a username and password in the incoming request, we
-must check that they are valid.  In a production system you'd usually do that by
-checking in a user authentication class or global in your Cach&eacute; or IRIS system.
+          /*
 
-  However, in this example I've simply hard-coded a check:
+            The incoming request contained valid values
+            so now we'll save them as a new Person record
 
-  - the username must be *rob*
-  - the password must be *secret*
+            mg-dbx provides the classmethod API which
+            gives us access to Cache/IRIS Classes
+
+            In QEWD, it's exposed via this.db.dbx
+
+          */       
+
+          let db = this.db.dbx;
+
+          /*
+            Instantiate a new Person instance
+          */
+
+          let person = db.classmethod('User.Person', '%New');
+
+          /*
+            mg-dbx allows us to set properties using the setproperty method
+          */
+
+          person.setproperty('Name', name);
+          person.setproperty('Gender', gender);
+          person.setproperty('City', gender);
+          
+          /*
+            person methods are invoked using the mg-dbx method function
+
+            We'll save the person instance, get the id that was allocated to it
+            and close the instance
+
+          */
+
+          person.method('%Save');
+          let id = person.method('%Id');
+          person.method('%Close'); 
+          
+          /*
+            Finish processing, and return the new Person id
+          */
+
+          finished({
+            ok: true,
+            id: id
+          });
+        };
 
 
-          if (username !== 'rob' || password !== 'secret') {
-            return finished({error: 'Invalid login attempt 4'});
+
+#### *getPerson / index.js*
+
+This will try to fetch a Person record (name, gender, city) with the specified id
+
+It will be handling a GET request, with the id specified as a variable part of the REST API URI path, 
+eg to fetch the details for a Person with an Id of 23:
+
+        GET /api/person/23
+
+
+##### QEWD-JSdb
+
+        module.exports = function(args, finished) {
+
+          /*
+            Check the JWT to make sure it's for a user who has logged in
+            and has therefore authenticated
+          */
+
+          if (!args.session.authenticated) {
+            return finished({error: 'Not authenticated'});
           }
 
-  Feel free to modify the module to make use of your own authentication database.
+          /*
+            Next, check that an id has been specified. Variables within the
+            URI path are exposed as properties of args, so:
 
-- if the username and password are valid, we now do the following:
+          */
 
-          args.session.timeout = 1200;
-          args.session.authenticated = true;
-          args.session.username = username;
+          if (!args.id || args.id === '') {
+            return finished({error: 'Invalid request'});
+          }
 
-  The JWT that has been created automatically at this point by QEWD is made available
-to your API handler module as *args.session*, and you can augment its content.
+          /*
+            Instantiate a DocumentNode Object representing the
+            Global node for the specified Person record
+          */
 
-  Some of the JWT properties are reserved names and have a special meaning: *timeout* and
-*authenticated* are two such properties:
+          let person = this.db.use('Person', 'by_id', args.id);
 
-  - timeout: sets the expiry timeout in seconds of the JWT.  The JWT's expiry time will
-be automatically extended by this amount every time a request authenticated with the JWT
-is processed by a QEWD MicroService.
+          /*
+            Check if a Person record with that id was found
 
-  - authenticated: flags the user/owner of the JWT as having been authenticated, and
-therefore a valid user
+            If not, return an error object
 
-You can also add properties of your own that have a meaning relevant to you and not QEWD.
-In this case we're adding the *username* property to hold the user's username within
-the JWT:
+          */
+          
+          if (!person.exists) {
+            return finished({error: 'No person exists with id ' + args.id});
+          }
 
-          args.session.username = username;
+          /*
+            Map the persistent record into a local JavaScript object
+            by using the getDocument() method
 
-- Finally, we tell QEWD that we have finished and return a response object that simply
-denotes a successful login:
+            We could have alternatively fetched each value using the 
+            value method for each property
+          */
+
+          let record = person.getDocument();
+
+          /*
+            Finish processing, and return the Person data
+          */
+
+          finished({
+            ok: true,
+            data: record
+          });
+          
+        };
+
+
+##### Cach&eactute; / IRIS Class
+
+
+        module.exports = function(args, finished) {
+
+          /*
+            Check the JWT to make sure it's for a user who has logged in
+            and has therefore authenticated
+          */
+
+          if (!args.session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          /*
+            Next, check that an id has been specified. Variables within the
+            URI path are exposed as properties of args, so:
+
+          */
+
+          if (!args.id || args.id === '') {
+            return finished({error: 'Invalid request'});
+          }
+
+          /*
+            Access the mg-dbx classmethod function to check if
+            a Person record with that id exists
+
+            If not, return an error object
+
+          */
+
+          let db = this.db.dbx;
+
+          let exists = db.classmethod('User.Person', '%ExistsId', args.id);
+          
+          if (exists !== '1') {
+            return finished({error: 'No person exists with id ' + args.id});
+          }
+
+          /*
+            instantiate the specified Person record
+          */
+
+          let person = db.classmethod('User.Person', '%OpenId', args.id);
+
+          /*
+            Properties are accessed via the mg-dbx getproperty function
+          */
+
+          let name = person.getproperty("Name");
+          let gender = person.getproperty("Gender");
+          let city = person.getproperty("City");
+          
+          /*
+            Close the Person object
+          */
+
+          person.method('%Close');
+
+          /*
+            Finish processing, and return the Person data
+          */
+
+          finished({
+            ok: true,
+            data: {
+              name: name,
+              gender: gender,
+              city: city
+            }
+          });
+          
+        };
+
+
+
+#### *editPerson / index.js*
+
+This will try to edit a Person record with the specified id. If found, the
+Person record will be updated with new values for name, gender and/or city.
+
+It will be handling a PUT request, with the id specified as a variable part of the REST API URI path, 
+and the new data values specified in the JSON Body payload.
+
+eg to edit the city details for a Person with an Id of 23:
+
+        PUT /api/person/23
+
+        Content-type: application/json
+
+        {
+          "city": "London"
+        }
+
+
+##### QEWD-JSdb
+
+        module.exports = function(args, finished) {
+
+          /*
+            Check the JWT to make sure it's for a user who has logged in
+            and has therefore authenticated
+          */
+
+          if (!args.session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          /*
+            Next, check that an id has been specified. Variables within the
+            URI path are exposed as properties of args, so:
+
+          */
+
+          if (!args.id || args.id === '') {
+            return finished({error: 'Invalid request'});
+          }
+
+          /*
+            Next, check the incoming PUT body to make sure
+            it exists
+          */
+
+          let body = args.req.body;
+          if (!body) {
+            return finished({error: 'Invalid request'});
+          }
+
+          /*
+            Instantiate a DocumentNode Object representing the
+            Global node for the specified Person record
+          */
+
+          let person = this.db.use('Person', 'by_id', args.id);
+
+          /*
+            Check if a Person record with that id was found
+          */
+          
+          if (!person.exists) {
+            return finished({error: 'No person exists with id ' + args.id});
+          }
+
+          /*
+            Check for each Person property in the body, and
+            if a new value exists, update the Person record
+          */
+
+          let name = body.name;
+          if (name && name !== '') {
+            person.$('name').value = name;
+          }
+
+          let gender = body.gender;
+          if (gender && gender !== '') {
+            person.$('gender').value = gender;
+          }
+
+          let city = body.city;
+          if (city && city !== '') {
+            person.$('city').value = city;
+          }
+
+          /*
+            Finish processing and return a success flag as the response
+          */
+          
+          finished({
+            ok: true
+          });
+          
+        };
+
+##### Cach&eactute; / IRIS Class
+
+
+        module.exports = function(args, finished) {
+
+          /*
+            Check the JWT to make sure it's for a user who has logged in
+            and has therefore authenticated
+          */
+
+          if (!args.session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          /*
+            Next, check that an id has been specified. Variables within the
+            URI path are exposed as properties of args, so:
+
+          */
+
+          if (!args.id || args.id === '') {
+            return finished({error: 'Invalid request'});
+          }
+
+          /*
+            Next, check the incoming PUT body to make sure
+            it exists
+          */
+
+          let body = args.req.body;
+          if (!body) {
+            return finished({error: 'Invalid request'});
+          }
+
+          /*
+            Access the mg-dbx classmethod function to check if
+            a Person record with that id exists
+
+            If not, return an error object
+
+          */
+
+          let db = this.db.dbx;
+
+          let exists = db.classmethod('User.Person', '%ExistsId', args.id);
+          
+          if (exists !== '1') {
+            return finished({error: 'No person exists with id ' + args.id});
+          }
+
+          /*
+            instantiate the specified Person record
+          */
+
+          let person = db.classmethod('User.Person', '%OpenId', args.id);
+
+          /*
+            Check for each Person property in the body, and
+            if a new value exists, update the Person record
+            using the mg-dbx setproperty function
+          */
+
+          let name = body.name;
+          if (name && name !== '') {
+            person.setproperty('Name', name);
+          }
+
+          let gender = body.gender;
+          if (gender && gender !== '') {
+            person.setproperty('Gender', gender);
+          }
+
+          let city = body.city;
+          if (city && city !== '') {
+            person.setproperty('City', city);
+          }
+
+          /*
+            Save the updated record and close the person object
+          */
+
+          result = person.method('%Save');
+          person.method('%Close');
+
+          /*
+            Finish processing and return a success flag as the response
+          */
+          
+          finished({
+            ok: true
+          });
+          
+        };
+
+
+#### *deletePerson / index.js*
+
+This will try to delete a Person record with the specified id
+
+It will be handling a DELETE request, with the id specified as a variable part of the REST API URI path, 
+eg to delete the record for a Person with an Id of 23:
+
+        DELETE /api/person/23
+
+
+##### QEWD-JSdb
+
+        module.exports = function(args, finished) {
+
+          /*
+            Check the JWT to make sure it's for a user who has logged in
+            and has therefore authenticated
+          */
+
+          if (!args.session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          /*
+            Next, check that an id has been specified. Variables within the
+            URI path are exposed as properties of args, so:
+
+          */
+
+          if (!args.id || args.id === '') {
+            return finished({error: 'Invalid request'});
+          }
+
+          /*
+            Instantiate a DocumentNode Object representing the
+            Global node for the specified Person record
+          */
+
+          let person = this.db.use('Person', 'by_id', args.id);
+
+          /*
+            Check if a Person record with that id was found
+          */
+          
+          if (!person.exists) {
+            return finished({error: 'No person exists with id ' + args.id});
+          }
+
+          /*
+            Delete the specified Person record
+          */
+
+          person.delete();
+
+          /*
+            Finish processing and return a success flag as the response
+          */
 
           finished({
             ok: true
           });
+          
+        };
+
+
+##### Cach&eactute; / IRIS Class
+
+
+        module.exports = function(args, finished) {
+
+          /*
+            Check the JWT to make sure it's for a user who has logged in
+            and has therefore authenticated
+          */
+
+          if (!args.session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          /*
+            Next, check that an id has been specified. Variables within the
+            URI path are exposed as properties of args, so:
+
+          */
+
+          if (!args.id || args.id === '') {
+            return finished({error: 'Invalid request'});
+          }
+
+          /*
+            Access the mg-dbx classmethod function to check if
+            a Person record with that id exists
+
+            If not, return an error object
+
+          */
+
+          let db = this.db.dbx;
+
+          let exists = db.classmethod('User.Person', '%ExistsId', args.id);
+          
+          if (exists !== '1') {
+            return finished({error: 'No peron exists with id ' + args.id});
+          }
+
+          /*
+            Delete the specified Person record
+          */
+
+          db.classmethod('User.Person', '%DeleteId', args.id);
+
+          /*
+            Finish processing and return a success flag as the response
+          */
+
+          finished({
+            ok: true
+          });
+          
+        };
+
+
 
 
 ### Install QEWD
 
-We've now created everything needed for the *login_service* MicroService.
+We've now created everything needed for the *info_service* MicroService.
 
 We now install QEWD in the same way as for the *Orchestrator*.  So, open another
 Windows Console session and type:
 
-        cd \qewd-login-service
+        cd \qewd-info-service
 
         npm install
 
 
 ### Start the MicroService
 
-A MicroService is started similarly to the *Orchestrator*, but we add the MicroService's
-logical name after *npm start*, ie:
 
-
-        npm start login_service
+        npm start info_service
 
 
 As with the *Orchestrator*, the first time you start the MicroService, QEWD installs a
-bunch of additional stuff for you, such as the *qewd-monitor* application.  It will then start and
-you should see:
+bunch of additional stuff for you, such as the *qewd-monitor* application.  It will then start and,
+just as you saw for the *login_service* MicroService,
+you should see the *info_service* MicroService being connected to by the *Orchestrator*.
 
 
-        ========================================================
-        ewd-qoper8 is up and running.  Max worker pool size: 2
-        ========================================================
-        ========================================================
-        QEWD.js is listening on port 3001
-        ========================================================
+----
+
+# Testing the Completed System
+
+You should now have everything working and ready to try out the complete suite of REST APIs
+supported by your MicroServices.
+
+## Login
+
+Using a REST Client such as PostMan, send a login request:
+
+        POST /api/login
+
+        Content-type: application/json
+
+        {
+          "username": "rob",
+          "password": "secret"
+        }
 
 
-If everything has been correctly configured on the *Orchestrator* and your
-MicroService, after a second or so, you'll then see activity on both the
-*Orchestrator* and MicroService - something like the following:
+You should get back a response that includes the authenticated JWT as a property named *token*.
 
-#### MicroService:
-
-        Thu, 14 May 2020 17:18:16 GMT; worker 5068 received message: {"type":"ewd-regist
-        er","application":"login_service","jwt":true,"socketId":"OpEFvhCtopEsk-jmAAAA","
-        ipAddress":"::ffff:192.168.1.74"}
-        **** jwtHandler encrypt: key = d8693c03147ce74398256b3a8bf21b5b98dfa874b310aeed3
-        be0201f2597fe04
-        **** jwtHandler encrypt: iv = eeb6596f1af5bb87e20adba0c15fc7b2
-        Thu, 14 May 2020 17:18:16 GMT; master process received response from worker 5068
-        : {"type":"ewd-register","finished":true,"message":{"token":"eyJ0eXAiOiJKV1QiLCJ
-        hbGciOiJIUzI1NiJ9.eyJleHAiOjE1ODk0NzY5OTYsImlhdCI6MTU4OTQ3NjY5NiwiaXNzIjoicWV3ZC
-        5qd3QiLCJhcHBsaWNhdGlvbiI6ImxvZ2luX3NlcnZpY2UiLCJ0aW1lb3V0IjozMDAsInFld2QiOiI0Mz
-        I5MjY3YzY0ZTYxNThhNzE4ODIzNjJiZWZjMjJmNTEzYTQ0NTFmY2E0ZmVmMWIyNzgxZjI5YzEwNjJmOD 
-        IyMWMyMmY0Mzk5ZWQxZTIxNzg1ZGVmYzQ1YzA1MGY0NzE0YjU3MDAzOTYxMTIzMTBiMmI1ODQwMTZlMT
-        g0YTE1Y2FhOGU1ZjRhOWU2MWIzMjBiYWI3MGJiZjk0Y2NlZTZjNzNiYTE1Zjk1MWQ3MTY5ZTlmMGE2OT
-        I3NGQ0MjYyMGQifQ.PmWplqTjV0uAdd6u1bxk2zZJEtQ2-IMWiUheAclA4B0"}}
+Copy the JWT value.
 
 
-#### Orchestrator
-
-        login_service registered
-        http://192.168.1.74:3001 micro-service ready
+## Create a New Person
 
 
-What has happened is that the *Orchestrator* has noticed that the *login_service*
-MicroService has come online, and it automatically establishes a WebSocket connection
-to it.
+        POST /api/person
 
-Should that connection be lost for whatever reason, the *Orchestrator* will automatically
-attempt to reconnect.
+        Content-type: application/json
+        Authorization: Bearer {{JWT}}
 
-You can stop and restart the *Orchestrator* and/or MicroServices in any sequence, but once
-both are online, the *Orchestrator* will automatically reconnect.
+        {
+          "name": "Rob Tweed",
+          "gender": "male",
+          "city": "Redhill"
+        }
+
+Note: paste the value of the authenticated JWT from the Login response after the word *Bearer*
+in the Authorization header
+
+You should get back a response that includes the id of the new Person record, and an updated
+version of the JWT.  You should find that the only difference in the JWT is that the expiry
+date/time has been updated.
+
+The first time you run this, it should return an id of 1.
+
+
+## Fetch a Person Record
+
+        GET /api/person/1
+
+        Authorization: Bearer {{JWT}}
+
+
+You should get back a response containing the values for the name, gender and city properties
+of the specified Person record.  You'll also get a new copy of the JWT with an updated expiry.
+
+
+## Edit a Person
+
+
+eg to edit the city value for a Person with an id of 1:
+
+        PUT /api/person/1
+
+        Content-type: application/json
+        Authorization: Bearer {{JWT}}
+
+        {
+          "city": "London"
+        }
+
+You should get back *ok: true* and an updated copy of the JWT.
+
+
+## Delete a Person
+
+
+eg to delete a Person with an id of 1:
+
+        DELETE /api/person/1
+
+        Authorization: Bearer {{JWT}}
+
+
+You should get back *ok: true* and an updated copy of the JWT.
+
 
 
 
