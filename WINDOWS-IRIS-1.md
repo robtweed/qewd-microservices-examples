@@ -1491,7 +1491,7 @@ A typical request will be:
 
           person.setproperty('Name', name);
           person.setproperty('Gender', gender);
-          person.setproperty('City', gender);
+          person.setproperty('City', city);
           
           /*
             person methods are invoked using the mg-dbx method function
