@@ -33,7 +33,7 @@ Pre-built versions of the files used in this example can be found in the
 
 It provides you with 4 panels:
 
-![SB Admin 2 Theme](./amninui-1.png)
+![SB Admin 2 Theme](https://github.com/robtweed/qewd-microservices-examples/raw/master/adminui-1.png)
 
 As shown above...
 
