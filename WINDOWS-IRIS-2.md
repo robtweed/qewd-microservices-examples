@@ -1715,12 +1715,310 @@ it couldn't find a message handler module for our *demo* application's *login* m
 
 That's because we haven't yet written one, so it's hardly surprising!
 
+
+#### Adding the QEWD Back-end Login Handler Module 
+
+So we'll now move our attention to the QEWD back-end, and write the first handler, in this
+case to authenticate/validate the *username* and *password* credentials.
+
+After you started QEWD for the first time, you'll have noticed that a number of files and folders
+were added: we've already mentioned some of them and have made use of them.
+
+One such folder that we haven't mentioned yet is the *qewd-apps* folder.  You'll see it amongst the others,
+directly under your QEWD installation folder, eg:
+
+
+        C:\qewd
+            |
+            |_ package.json
+            |
+            |_ package-lock.json
+            |
+            |_ configuration
+            |
+            |- node_modules
+            |
+            |- www
+            |
+            |- qewd-apps
+            |
+
+
+The *qewd-apps* folder is reserved by QEWD for back-end message handler modules for interactive
+applications.
+
+If you look in *qewd-apps*, you'll see that one application's back-end handlers has already been
+created for you:
+
+        C:\qewd
+            |
+            |- qewd-apps
+                    |
+                    |- qewd-monitor-adminui                <=== application name
+                                 |
+                                 |- changeNodeValue        <=== message type name
+                                 |       |
+                                 |       |- index.js       <=== handler module
+                                 |
+                                 |- createNode
+                                 |       |
+                                 |       |- index.js
+                                 |
+                                 ..etc
+
+
+So, as you can see:
+
+- the application name(s) are specified directly under the *qewd-apps* sub-folder
+
+- Under each application name sub-folder are sub-folders whose names correspond to QEWD WebSocket message types
+
+- under each message-type sub-folder is a file named *index.js* which is a module containing the actual hander logic 
+
+
+In our case, we've named the application *demo*.  If you remember, we did that in the *app.js* file here:
+
+          QEWD.start({
+            application: 'demo'   <==== ****
+          });
+
+
+So the first step is to add a sub-folder named *demo* under the *qewd-apps* folder.
+
+The message we're going to handle is named *login*.  If you remember that's from this logic in the modal login's
+button handler:
+
+
+                  let responseObj = await QEWD.reply({
+                    type: 'login',                         <===== ***
+                    params: form.fieldValues
+                  });
+
+
+So, under the *demo* sub-folder, create a sub-folder named *login*.
+
+Then, within the *login* sub-folder, create a text file named *index.js*.  To summarise, you should now have this
+structure:
+
+        C:\qewd
+            |
+            |- qewd-apps
+                    |
+                    |- qewd-monitor-adminui
+                    |            |
+                    |            ...etc
+                    |
+                    |- demo
+                         |
+                         |- login
+                               |
+                               |- index.js
+
+
+Paste the following content into *index.js*:
+
+
+        module.exports = function(messageObj, session, send, finished) {
+
+          if (!messageObj.params) {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+          let username = messageObj.params.username;
+
+          if (!username || username === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+          let password = messageObj.params.password;
+
+          if (!password || password === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+          // hard-coded example validation check
+
+          if (username !== 'rob' || password !== 'secret') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+          // successfully validated
+
+          session.authenticated = true;
+          session.timeout = 3600;
+          finished({ok: true});
+
+        };
+
+
+Let me explain what's happening here.
+
+##### Message Handler Module Signature
+
+All message handler modules for interactive QEWD applications have the same outer signature:
+
+        module.exports = function(messageObj, session, send, finished) {
+          // logic goes here
+        };
+
+
+The arguments available to your handler logic are:
+
+- *messageObj*: the incoming message from the browser
+
+- *session*: the QEWD Session that will have been automatically created for the user by this point
+
+- *send*: an optional function that you can use to send what's termed an *intermediate* WebSocket message back to the
+browser, even if processing has not yet completed
+
+- *finished*: a mandatory function that serves two purposes:
+
+  - it returns to the browser a WebSocket message containing the object defined as the *finished()* function's argument
+
+  - it signals to QEWD that your processing is complete, and that the QEWD Worker process that has been used for your
+handler method can be returned to the available pool so that it can be re-used for another queued incoming message.
+
+
+##### What our *login* handler module wll be doing
+
+For the purposes of this example, we'e going to use a simple, hard-coded authentication mechanism, 
+whereby the username must be *rob* and the password must be *secret*.
+
+In a real-world scenario, you'd perform the validation against an authentication database of some sort, and/or
+do so using APIs that you already use for many other applications.  Hopefully, on the basis of this hard-coded
+example, you'll be able to see how you could adapt the code to use your own user authentication process.
  
+If the username and/or password are invalid, we'll return an object containing an error.
+
+If the username and password are valid, we'll:
+
+- flag the user as having been authenticated within their QEWD Session
+
+- extend the session timeout to a more reasonable length
+
+- return a simple *{ok: true}* response to denote successful login.
 
 
+##### How that functionality is implemented
+
+We're expecting the *login* message to have been sent using:
+
+                  let responseObj = await QEWD.reply({
+                    type: 'login',
+                    params: form.fieldValues
+                  });
+
+and, as you saw from your browser's console, a message like this was sent:
+
+        {
+          "type":"login",
+          "params":{
+            "username":"sdfds",
+            "password":"sdf"
+          }
+        }
+
+This will be passed to you as the module's *messageObj* argument.
+
+So the first thing we need to confirm is that *messageObj.params* exists.  If not we return an error
+object as the argument of the *finished()* function.  Note that if the object returned by the
+*finished()* function has an *error* property, it is treated as a special, reserved response type that
+should return an error response to the browser:
 
 
+          if (!messageObj.params) {
+            return finished({error: 'Invalid login attempt'});
+          }
 
 
+Next, we check that it contains a non-empty *username* and *password* value.  If not, again we
+return an error object and finish processing.  Note that we're sending the same error message regardless
+of the reason, so that a malicious user isn't given any clues as to which part of what they have 
+typed might be correct or not:
+
+
+          let username = messageObj.params.username;
+
+          if (!username || username === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+          let password = messageObj.params.password;
+
+          if (!password || password === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+Next we perform the validation on the received *username* and *password* values. In the example
+we're just doing a simple hard-coded validation:
+
+          if (username !== 'rob' || password !== 'secret') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+
+If it got this far, the username and password must be valid. So we flag in the user's QEWD Session
+that they are authenticated.  You'll see later how/why that is used:
+
+          session.authenticated = true;
+
+Initially, when QEWD sessions are created automatically, they are deliberately given a short timeout of 5 minutes.
+After login, you'll probably want to extend this to a more reasonable amount of time.  Here we set it to an hour:
+
+          session.timeout = 3600;
+
+And finally we signal that we're finished processing and return a simple object denoting successful login:
+
+
+          finished({ok: true});
+
+
+#### Restart QEWD to Load the new *qewd-apps* Handlers
+
+Whenever you first add a new application sub-folder to the *qewd-apps* folder, you **must** restart
+QEWD in order to register it.  This is a one-off step for each application you add.
+
+So, stop QEWD (eg if you're running it in a Windows Console session, just type CTRL & C).
+
+Then start it up again:
+
+        npm start
+
+
+In your browser, reload the page by clicking the *refresh* button.
+
+The login modal form should appear as before.  Enter some invalid text for the *username* and *password* fields and
+press the *Enter* key (or click the *Login* button).
+
+If everything was entered correctly and if it all worked, you should see a red *toastr* error panel pop up
+in the top right-hand corned saying: *Invalid login attempt*
+
+Now try entering the correct *username* and *password*, ie *rob* and *secret* respectively.  You should see the
+modal login panel disappear, and if you look in the browser's JavaScript console, you should see:
+
+        sent: {"type":"login","params":{"username":"rob","password":"secret"}}
+
+        received: {"type":"login","finished":true,"message":{"ok":true},"responseTime":"55ms"}
+
+So you can see that the QEWD back-end authenticated correctly
+
+Then you'll see:
+
+
+        *** modal header component was removed!
+        2 *** form field component was removed!
+        *** form component was removed!
+        *** modal body component was removed!
+        *** button component was removed!
+        *** modal footer component was removed!
+        *** modal root component was removed!
+
+This shows all the constituent Web Components of the modal panel being removed, along with any handler
+that were added to them.
+
+If you check in the browser's Developer Tools Elements view, you'll no longer see the modal panel Components.
+
+
+#### Updating the UI Panels After Successful Login
 
 
