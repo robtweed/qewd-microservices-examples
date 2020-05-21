@@ -2021,4 +2021,1146 @@ If you check in the browser's Developer Tools Elements view, you'll no longer se
 
 #### Updating the UI Panels After Successful Login
 
+Let's summarise what we next need to achieve: now that the user has successfully logged in, we want to
+give them access to all the options our application is designed to give them.  In our example, it will
+actually just be two things:
+
+- the ability to maintain a Person record via CRUD UI controls
+- a means of logging out of the application.
+
+In practice this will mean:
+
+- repopulating the *sidebar* menu with two options:
+
+  - maintain the Person record
+  - log out
+
+- since the user has logged in, displaying a welcome message in the *topbar* 
+
+- displaying the initial UI control for maintaining the Person record in the *content panel*
+
+
+As always there's a variety of ways these things can be done, so I'll be showing you just one possible
+solution.  Feel free to think up alternatives once you understand what you have to do and the options
+available to you with *mg-webComponents*.
+
+
+There will be quite a lot of different things to put together for this step, so, rather than implement the
+whole thing at once, I'll build it up bit by bit, and try to explain the ideas.
+
+
+##### How and Where to Trigger this Step
+
+The first question is how and where this UI updating process will be triggered?
+
+Let's backtrack a little and look again at the *hook* method we've created so far for the *Login* button,
+specifically the button's *click* handler:
+
+                let fn = async function() {
+                  let form = _this.getComponentByName('adminui-form', 'loginForm');
+                  let responseObj = await QEWD.reply({
+                    type: 'login',
+                    params: form.fieldValues
+                  });
+                  if (!responseObj.message.error) {
+                    let modal = _this.getComponentByName('adminui-modal-root', 'modal-login');
+                    modal.hide();
+                    modal.remove();
+                  }
+                };
+                this.addHandler(fn);
+
+So, if you remember, if we don't get an error back from the QEWD *login* message handler, it must
+mean the user has successfully logged in, so we removed the modal login panel:
+
+                  if (!responseObj.message.error) {
+                    let modal = _this.getComponentByName('adminui-modal-root', 'modal-login');
+                    modal.hide();
+                    modal.remove();
+                  }
+
+So the place to update the UI for a logged-in user must be immediately after that *modal.remove()*
+command.  Now, let's think about the context we're in at this point: this is a *hook* method for the
+Login button's *adminui-button* component.  If it is to execute some logic to load new/additional
+Assembly Modules into the UI, then it will either:
+
+- need access to the *mg-webComponents* module (because it
+provides the necessary APIs to load more Assembly modules into the UI); or 
+
+- it needs to be able to execute UI updating logic that we define in the *app.js* Loader Module.
+
+
+The former could be done, but we'd need to do the following:
+
+- change the first line of the *login-modal.js* Assembly Module from:
+
+        export function login_modal_assembly(QEWD) {
+
+to:
+
+        export function login_modal_assembly(QEWD, webComponents) {
+
+
+and in the *app.js* file, change:
+
+            webComponents.addComponent('login_modal', login_modal_assembly(QEWD));
+
+to:
+
+            webComponents.addComponent('login_modal', login_modal_assembly(QEWD, webComponents));
+
+We could then write the API calls to load the additional Assemblies.
+
+I don't personally like this approach, because it means that logic related to the UI and its
+constituent Assembly Modules ends up hidden inside another Assembly Module, specifically the
+*login-modal* one.  That will potentially make maintenance more difficult and make the
+logic more difficult for others to understand.
+
+I prefer everything to do with the UI's make-up, in terms of the Assemblies it uses, to be in the one
+place: the *app.js* Module, which already has access to all the necessary *mg-webComponents* APIs anyway.
+
+So the question is how to make some logic that we define in the *app.js* Module accessible from
+the *hook* method for the *Login* button within the *login-modal* Assembly?
+
+Again, there's a couple of ways this could be done, but the simplest is to make use of the *context*
+object, since that is something that is always automatically made available to every WebComponent 
+within your Assembly Modules.
+
+So, my approach would be to modify the *Login* button's *hook* method as follows:
+
+                  if (!responseObj.message.error) {
+                    let modal = _this.getComponentByName('adminui-modal-root', 'modal-login');
+                    modal.hide();
+                    modal.remove();
+                    _this.context.loadMainView();    <====== *****
+                  }
+
+And to make this work, we'll need to define this *loadMainView()* function in the *app.js* Module and add it to the
+*context* object.
+
+Where in the *app.js* Module you define this function is up to you, but again, my preference would be
+within the callback invoked when we initially loaded the *adminui-root* Component, ie in here:
+
+            let body = document.getElementsByTagName('body')[0];
+            webComponents.loadWebComponent('adminui-root', body, context, function(root) {
+              webComponents.loadGroup(webComponents.components.initial_sidebar, root.sidebarTarget, context);
+              webComponents.loadGroup(webComponents.components.footer, root.footerTarget, context);
+              webComponents.loadGroup(webComponents.components.login_modal, body, context);
+            });
+
+The reason is that we can make use of the closure created by this callback function, since it already
+contains pointers to all the objects and targets we'll need to use.  Hopefully you'll see what I
+mean by that as I build out the logic.
+
+First I'm going to tidy that logic up a little to make it more efficient and succinct, by
+setting a pointer to *webComponents.components*.  We'll be using that over and over again:
+
+
+            let body = document.getElementsByTagName('body')[0];
+            webComponents.loadWebComponent('adminui-root', body, context, function(root) {
+              let components = webComponents.components;
+              webComponents.loadGroup(components.initial_sidebar, root.sidebarTarget, context);
+              webComponents.loadGroup(components.footer, root.footerTarget, context);
+              webComponents.loadGroup(components.login_modal, body, context);
+            });
+
+
+Now we'll add that function to the *context* object.  Initially, within it, I'm just going
+to load the new *sidebar_menu* Assembly (which is described in the next section below).
+
+
+            let body = document.getElementsByTagName('body')[0];
+            webComponents.loadWebComponent('adminui-root', body, context, function(root) {
+              let components = webComponents.components;
+              webComponents.loadGroup(components.initial_sidebar, root.sidebarTarget, context);
+              webComponents.loadGroup(components.footer, root.footerTarget, context);
+              webComponents.loadGroup(components.login_modal, body, context);
+
+              context.loadMainView = function() {
+                webComponents.loadGroup(components.sidebar_menu, root.sidebarTarget, context);
+              };
+
+            });
+
+So, by defining the *loadMainView* function here, we're able to make use of the closure around
+the *components*, *root* and *context* objects needed by the *loadGroup()* API.
+
+Let's test that this is going to work before going to the next step.  To do that, make a temporary
+edit to the *loadMainView()* function:
+
+              context.loadMainView = function() {
+                console.log('UI will now be updated...');
+                //webComponents.loadGroup(components.sidebar_menu, root.sidebarTarget, context);
+              }
+
+In other words, we'll temporarily comment out the *loadGroup()* API since we haven't yet defined
+the *sidebar_menu* Assembly, but we'll just confirm that the *Login* button's *hook* method 
+correctly invokes it.
+
+Click the browser's *refresh* button and, after logging in with the correct *username* and *password*,
+you should see the modal panel disappear, and in the browser's JavaScript console you should see
+our *console.log* message appear: *UI will now be updated...*.
+
+So now we know this will work, remove the *console.log* command and the comment from the *loadGroup()* API.
+
+We're now ready to define the *sidebar* menu.
+
+
+##### Create the New *sidebar* Menu Contents
+
+Initially, during login, we just displayed a title at the top of the
+*sidebar*.  We're now going to append a further Assembly to the *sidebar*, containing the menu for a logged-in
+user.  Let's call this additional Assembly Module *sidebar-menu.js".
+
+So in your application's *js* folder, create a new text file named *sidebar-menu.js* and paste the following
+content:
+
+        export function sidebar_menu_assembly() {
+
+          let component = [
+            {
+              componentName: 'adminui-sidebar-divider',
+              state: {
+                isTop: true
+              }
+            },
+            {
+              componentName: 'adminui-sidebar-nav-item',
+              state: {
+                title: 'Person Editor',
+                icon: 'user',
+                contentPage: 'person',
+                active: true
+              }
+            }
+          ];
+
+          return {component};
+
+        };
+
+Initially I'm just adding an array of two *adminui* WebComponents:
+
+- *adminui-sidebar-divider*: this simply displays a horizontal divider bar across the *sidebar* to create a visual
+break
+
+- *adminui-sidebar-nav-item*: this creates a clickable menu option and associated icon.  The idea is that clicking
+the menu option will load a specified Assembly into the UI's *content area*.  This is specified by the *contentPage*
+property which, in the example above, is going to load an Assembly named *person* into the *content area*.  
+
+  This will be the default option in this example, and, in fact, as you'll see later, we're going to pre-load the
+*person* Assembly into the *content area* anyway, so we'll want this menu option to be highlighted as the
+actively-selected option.  We do that by specifying *active: true*
+
+
+##### Load the Sidebar Menu Assembly:
+
+So now make the following changes to your *app.js* file:
+
+Near the top, import the Sidebar Menu Assembly Module:
+
+        import {sidebar_menu_assembly} from './sidebar-menu.js';
+
+Then load/register it:
+
+            webComponents.addComponent('sidebar_menu', sidebar_menu_assembly());
+
+It will now be available when the *loadMainView()* function loads it into the UI.
+
+To summarise, at this stage, here's what your *app.js* file should look now look like:
+
+        import {webComponents} from '../../mg-webComponents.js';
+        import {QEWD} from '../../qewd-client.js';
+        import {initial_sidebar_assembly} from './initial-sidebar.js';
+        import {footer_assembly} from './footer.js';
+        import {login_modal_assembly} from './login-modal.js';
+        import {sidebar_menu_assembly} from './sidebar-menu.js';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+          QEWD.on('ewd-registered', function() {
+            webComponents.addComponent('initial_sidebar', initial_sidebar_assembly());
+            webComponents.addComponent('footer', footer_assembly());
+            webComponents.addComponent('login_modal', login_modal_assembly(QEWD, webComponents));
+            webComponents.addComponent('sidebar_menu', sidebar_menu_assembly());
+            let context = {
+              paths: {
+                adminui: './components/adminui/'
+              },
+              readyEvent: new Event('ready')
+            };
+            
+           document.addEventListener('ready', function() {
+              let modal = webComponents.getComponentByName('adminui-modal-root', 'modal-login');
+              modal.show();
+            });
+            
+            let body = document.getElementsByTagName('body')[0];
+            webComponents.loadWebComponent('adminui-root', body, context, function(root) {
+              let components = webComponents.components;
+              webComponents.loadGroup(components.initial_sidebar, root.sidebarTarget, context);
+              webComponents.loadGroup(components.footer, root.footerTarget, context);
+              webComponents.loadGroup(components.login_modal, body, context);
+
+              context.loadMainView = function() {
+                webComponents.loadGroup(components.sidebar_menu, root.sidebarTarget, context);
+              }
+              
+            });
+
+          });
+          
+          QEWD.on('error', function(response) {
+            if (response.type === 'error') {
+              toastr.error('Programming logic error: ' + response.message);
+            }
+            else {
+              toastr.error(response.message.error);
+            }
+          });
+          
+          QEWD.log = true;
+          
+          QEWD.start({
+            application: 'demo'
+          });
+          
+        });
+
+
+and your *login-modal.js* Module file should look like this:
+
+        export function login_modal_assembly(QEWD) {
+
+          let component = {
+            componentName: 'adminui-modal-root',
+            state: {
+              name: 'modal-login',
+              static: true
+            },
+            children: [
+              {
+                componentName: 'adminui-modal-header',
+                state: {
+                  title: 'Login'
+                }
+              },
+              {
+                componentName: 'adminui-modal-body',
+                children: [
+                  {
+                    componentName: 'adminui-form',
+                    state: {
+                      name: 'loginForm',
+                      cls: 'user'
+                    },
+                    children: [
+                      {
+                        componentName: 'adminui-form-field',
+                        state: {
+                          label: 'Username:',
+                          placeholder: 'Enter username...',
+                          name: 'username',
+                          focus: true
+                        }
+                      },
+                      {
+                        componentName: 'adminui-form-field',
+                        state: {
+                          type: 'password',
+                          label: 'Password:',
+                          placeholder: false,
+                          name: 'password'
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                componentName: 'adminui-modal-footer',
+                children: [
+                  {
+                    componentName: 'adminui-button',
+                    state: {
+                      text: 'Login',
+                      colour: 'success',
+                      cls: 'btn-block'
+                    },
+                    hooks: ['login']
+                  }
+                ]
+              }
+            ]
+          };
+
+          let hooks = {
+            'adminui-button': {
+              login: function() {
+                let modal = this.getParentComponent({match: 'adminui-modal-root'});
+                let _this = this;
+
+                let kpfn =  function(e){
+                  if(e.which == 13) {
+                    // click the button to submit the form
+                    _this.rootElement.focus();
+                    _this.rootElement.click();
+                  }
+                };
+
+                modal.addHandler(kpfn, 'keypress');
+
+                let fn = async function() {
+                  let form = _this.getComponentByName('adminui-form', 'loginForm');
+                  let responseObj = await QEWD.reply({
+                    type: 'login',
+                    params: form.fieldValues
+                  });
+                  if (!responseObj.message.error) {
+                    let modal = _this.getComponentByName('adminui-modal-root', 'modal-login');
+                    modal.hide();
+                    modal.remove();
+                    _this.context.loadMainView();
+                  }
+                };
+                this.addHandler(fn);
+              }
+            }
+          };
+
+          return {component, hooks};
+
+        };
+
+
+Try out this latest by clicking your browser's *refresh* button.
+
+This time, after successfully logging in, not only should you see the modal panel disappear, but the new 
+*Person Editor* menu item should now appear in the *sidebar*.
+
+Clicking on the menu option won't do anything, but you'll also see that it doesn't generate any errors, even though
+we've not yet defined the *person* Content Page.
+
+
+##### Update the *topbar* with a Greeting
+
+Within your application's *js* folder, create a new text file named *topbar.js*.  Paste the following content into it:
+
+        export function topbar_assembly() {
+          let component = [
+            {
+              componentName: 'adminui-topbar-text',
+              state: {
+                text: 'Welcome to the Person Editor!'
+              }
+            }
+          ];
+          return {component};
+        };
+
+The *adminui-topbar-text* Web Component is designed to display text in the UI's *topbar* panel.
+
+The next steps should be beginning to become familiar.  In your *app.js* module:
+
+Near the top, import the Sidebar Menu Assembly Module:
+
+        import {topbar_assembly} from './topbar.js';
+
+Then load/register it:
+
+            webComponents.addComponent('topbar', topbar_assembly());
+
+and finally, load it within the *loadMainView()* function:
+
+
+              context.loadMainView = function() {
+                webComponents.loadGroup(components.sidebar_menu, root.sidebarTarget, context);
+                webComponents.loadGroup(components.topbar, root.topbarTarget, context);
+              }
+
+Try out this version in your browser: you should now see the welcome text in the *topbar*.
+
+
+##### Displaying a Personalised Greeting
+
+Of course, what we've displayed is static text.  If, instead, you wanted to display a personalised greeting,
+eg: *Welcome to the Person Editor, Rob*, how could that be done?
+
+Well, of course, for this to be possible, the back-end user authentication system would need to have
+available to it some kind of greeting name property associated with each username, and this would have
+to be retrieved in order to display it in the *topbar* text.
+
+Let's hard-code a version to show how it could be done.
+
+Return to the QEWD back-end *login* handler module you created earlier.  If you remember, this was in
+the *C:\qewd\qewd-apps\demo\login\index.js* file and looked like this:
+
+        module.exports = function(messageObj, session, send, finished) {
+
+          if (!messageObj.params) {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+          let username = messageObj.params.username;
+
+          if (!username || username === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+          let password = messageObj.params.password;
+
+          if (!password || password === '') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+          // hard-coded example validation check
+
+          if (username !== 'rob' || password !== 'secret') {
+            return finished({error: 'Invalid login attempt'});
+          }
+
+          // successfully validated
+
+          session.authenticated = true;
+          session.timeout = 3600;
+          finished({ok: true});
+
+        };
+
+For this example, I'm just going to hard-code a greeting name.  The key trick is that I'm going
+to save it into the user's QEWD session.  I'll edit this bit:
+
+          session.authenticated = true;
+          session.timeout = 3600;
+
+to this:
+
+          session.authenticated = true;
+          session.timeout = 3600;
+          session.data.$('greetingName').value = 'Rob';
+
+What we're doing here is using the QEWD Session's custom data, which is made available to you as a 
+QEWD-JSdb DocumentNode Object: *session.data*.  We're adding a property to it named *greetingName* with
+a hard-coded value of *Rob*.
+
+Of course, in a real-world application, that name would have been fetched from the user authentication database.
+However, you'd still put it into the user's QEWD Session.  You'll see why in a minute.
+
+
+The next step is to edit the *topbar.js* Assembly Module.  Instead of defining a static piece of text, we'll
+add a *hook* method that fetches the greeting text using a QEWD WebSocket message.
+
+Replace the contents of your *topbar.js* Module file with this:
+
+        export function topbar_assembly(QEWD) {
+          let component = [
+            {
+              componentName: 'adminui-topbar-text',
+              hooks: ['getGreeting']
+            }
+          ];
+
+          let hooks = {
+            'adminui-topbar-text': {
+              getGreeting: async function() {
+                let responseObj = await QEWD.reply({
+                  type: 'getGreeting'
+                });
+                if (!responseObj.message.error) {
+                  this.setState({
+                    text: 'Welcome to the Person Editor, ' + responseObj.message.greetingName
+                  });
+                }
+              }
+            }
+          };
+          
+          return {component, hooks};
+        };
+
+        
+Let me highlight the changes:
+
+- the first line has been changed to make the *qewd-client* APIs available to the Assembly Module:
+
+        export function topbar_assembly(QEWD) {
+
+ 
+- we're now invoking a *hook* method when the *adminui-topbar-text* Component is loaded and rendered:
+
+
+            {
+              componentName: 'adminui-topbar-text',
+              hooks: ['getGreeting']
+            }
+
+
+and that *hook* method is defined as follows:
+
+          let hooks = {
+            'adminui-topbar-text': {
+              getGreeting: async function() {
+                let responseObj = await QEWD.reply({
+                  type: 'getGreeting'
+                });
+                if (!responseObj.message.error) {
+                  this.setState({
+                    text: 'Welcome to the Person Editor, ' + responseObj.message.greetingName
+                  });
+                }
+              }
+            }
+          };
+
+It simply sends a QEWD message with a type of *getGreeting*:
+
+                let responseObj = await QEWD.reply({
+                  type: 'getGreeting'
+                });
+
+and uses its response to dynamically set the *text* state property of the Component.
+
+                  this.setState({
+                    text: 'Welcome to the Person Editor, ' + responseObj.message.greetingName
+                  });
+
+
+So that's the front-end functionality in place.  Now let's write the QEWD back-end message handler
+method for that *getGreeting* message.
+
+Create a new path for it:
+
+        C:\qewd
+            |
+            |- qewd-apps
+                    |
+                    |- demo
+                         |
+                         |- getGreeting
+                               |
+                               |- index.js
+
+
+and paste the following contents in the *index.js* file
+
+        module.exports = function(messageObj, session, send, finished) {
+          if (session.authenticated) {
+            finished({greetingName: session.data.$('greetingName').value});
+          }
+          else {
+            finished({error: 'Not authenticated'});
+          }
+        };
+          
+  
+Note that QEWD will automatically use the correct QEWD Session when the message is handled.  This
+is accomplished via a randomly-generated token that is exchanged between the browser and QEWD when
+the initial connection and registration takes place.
+
+You'll notice that we're first checking whether or not the user is authenticated: this is to
+prevent malicious attempts to access this back-end handler method from the browser's console
+by an unauthenticated user who will nevertheless have a valid QEWD Session token if they
+simply load the *demo* application into their browser.
+
+If authenticated, you'll see that what is returned is the same QEWD Session custom data as
+we set in the *login* handler.
+
+Save the *index.js* file.
+
+
+##### IMPORTANT: Stop all QEWD Worker Processes
+
+If you were to try out the application at this point, you'd find that an error would be reported
+when it tries to send the *getGreeting* message.  That's because the Worker Processes that actually
+invoke your message handler methods cache existing ones and can't automatically find new ones.
+
+So, whenever you add or edit a back-end handler method
+for an existing application, you must first do one of two things:
+
+- *restart QEWD*: this isn't my recommended approach, but it will always work
+
+- *stop all QEWD Worker Processes*: This is my recommendation.  Use the *qewd-monitor-adminui* application
+to do this.  Login using the *managementPassword* that you specified in the *config.json* file, then select
+the Processes menu option.  Stop **all** the Worker processes by clicking the red X button next to each one
+in the Worker Processes panel.  I always keep a copy of *qewd-monitor-adminui* running during application
+development for this purpose.
+
+  Note that you'll find that when you stop the last Worker process, a new one will
+automatically appear: that's OK, just ignore that one, and at this point you're ready to re-try the
+*demo* application.
+
+##### Try out the *demo* Application
+
+Login and you should now see the message appear in the *topbar*:
+
+        Welcome to the Person Editor, Rob
+
+If you look in the browser's JavaScript console, you should see the response received from QEWD that
+was used for that message text, eg:
+
+        received: {"type":"getGreeting","finished":true,"message":{"greetingName":"Rob"},"responseTime":"10ms"}
+
+
+##### Making the UI Truly Responsive
+
+There's two more small additions we can now make to the *sidebar* and the *topbar* to make the UI really 
+responsive and behave nicely within the small area available in a mobile device.
+
+We do this by adding special *toggler* WebComponents.
+
+First, change the *sidebar_menu.js* Assembly Module as follows:
+
+        export function sidebar_menu_assembly() {
+
+          let component = [
+            {
+              componentName: 'adminui-sidebar-divider',
+              state: {
+                isTop: true
+              }
+            },
+            {
+              componentName: 'adminui-sidebar-nav-item',
+              state: {
+                title: 'Person Editor',
+                icon: 'user',
+                contentPage: 'person',
+                active: true
+              }
+            },
+            {
+              componentName: 'adminui-sidebar-divider',
+            },
+            {
+              componentName: 'adminui-sidebar-toggler',
+            }
+          ];
+
+          return {component};
+
+        };
+
+
+And then change the *topbar.js* Assembly Module to this:
+
+        export function topbar_assembly(QEWD) {
+          let component = [
+            {
+              componentName: 'adminui-topbar-toggler'
+            },
+            {
+              componentName: 'adminui-topbar-text',
+              hooks: ['getGreeting']
+            }
+          ];
+
+          let hooks = {
+            'adminui-topbar-text': {
+              getGreeting: async function() {
+                let responseObj = await QEWD.reply({
+                  type: 'getGreeting'
+                });
+                if (!responseObj.message.error) {
+                  this.setState({
+                    text: 'Welcome to the Person Editor, ' + responseObj.message.greetingName
+                  });
+                }
+              }
+            }
+          };
+          
+          return {component, hooks};
+        };
+
+
+Try it out by clicking the browser's *refresh* button.  You should now see an arrow widget at the bottom of the
+*sidebar* menu which, if clicked, will collapse the sidebar.
+
+If you then try running the application in a mobile device's browser, you'll see another toggler device appears
+that collapses the menu into a "hamburger" menu widget.
+
+
+It's always a good idea to add both these WebComponents to any of your applications' *sidebar* and *topbar* Assemblies.
+
+
+##### Add a Logout Menu Option
+
+Let's now add another option to the *sidebar* menu, allowing the user to log out and terminate their
+QEWD Session.  
+
+The way this will work is that, when the *logout* menu option is clicked, a modal panel will appear, asking
+the user to confirm that they really do want to logout: in case the option was clicked by accident.
+
+The modal confirmation panel will allow the user to:
+
+- *cancel*: in which case the modal will disappear and the user can carry on as before
+
+- *accept*: in which case the user is logged out and returned to the login sequence
+
+So, first, edit the *sidebar_menu.js* Assembly Module as follows:
+
+        export function sidebar_menu_assembly() {
+
+          let component = [
+            {
+              componentName: 'adminui-sidebar-divider',
+              state: {
+                isTop: true
+              }
+            },
+            {
+              componentName: 'adminui-sidebar-nav-item',
+              state: {
+                title: 'Person Editor',
+                icon: 'user',
+                contentPage: 'person',
+                active: true
+              }
+            },
+            {
+              componentName: 'adminui-sidebar-divider',
+            },
+            {
+              componentName: 'adminui-sidebar-nav-item',
+              state: {
+                title: 'Logout',
+                icon: 'power-off',
+                use_modal: 'logout-modal'
+              }
+            },
+            {
+              componentName: 'adminui-sidebar-divider',
+            },
+            {
+              componentName: 'adminui-sidebar-toggler',
+            }
+          ];
+
+          return {component};
+
+        };
+
+
+The crucial bit we've added is this:
+
+            {
+              componentName: 'adminui-sidebar-nav-item',
+              state: {
+                title: 'Logout',
+                icon: 'power-off',
+                use_modal: 'logout-modal'
+              }
+            },
+
+
+As you can see it's another *adminui-sidebar-nav-item* Component, but this time, instead of
+loading an Assembly into the "content area", it is specifying that a modal panel Assembly with a name
+property of *modal-logout* should be brought into play when the option is clicked:
+
+                use_modal: 'logout-modal'
+
+
+The next step is to create the modal logout Assembly Module.  In your application's *js* 
+folder, create a file named *logout_modal.js*.  Paste the following content into it:
+
+        export function define_logout_modal(QEWD) {
+
+          let component = {
+            componentName: 'adminui-modal-root',
+            state: {
+              name: 'logout-modal'
+            },
+            children: [
+              {
+                componentName: 'adminui-modal-header',
+                state: {
+                  title: 'Logout'
+                },
+                children: [
+                  {
+                    componentName: 'adminui-modal-close-button',
+                  }
+                ]
+              },
+              {
+                componentName: 'adminui-modal-body',
+                state: {
+                  text: 'Are you sure you want to logout?'
+                }
+              },
+              {
+                componentName: 'adminui-modal-footer',
+                children: [
+                  {
+                    componentName: 'adminui-modal-cancel-button',
+                  },
+                  {
+                    componentName: 'adminui-button',
+                    state: {
+                      text: 'Logout',
+                      colour: 'danger',
+                      cls: 'btn-block'
+                    },
+                    hooks: ['logout']
+                  }
+                ]
+              }
+            ]
+          };
+
+          QEWD.on('socketDisconnected', function() {
+            toastr.warning('You have successfully logged out');
+            setTimeout(function() {
+              location.reload();
+            }, 3000);
+          });
+
+          let hooks = {
+            'adminui-button': {
+              logout: function() {
+                let fn = async function() { 
+                  let responseObj = await QEWD.reply({
+                    type: 'logout'
+                  });
+                  QEWD.disconnectSocket();
+                };
+                this.addHandler(fn);
+              }
+            }
+          };
+
+          return {component, hooks};
+        };
+
+Let's go through this and see what it's going to do.
+
+It's another instance of an *adminui* modal panel with a header, body and footer, just as we saw in
+the *login-modal* Assembly.
+
+There's a few differences though:
+
+- we've given the *adminui-modal-root* Component a name of *logout-modal*, ie:
+
+          let component = {
+            componentName: 'adminui-modal-root',
+            state: {
+              name: 'logout-modal'
+            },
+
+  This matches the name we specified earlier in the *sidebar* nav menu item, ie:
+
+            {
+              componentName: 'adminui-sidebar-nav-item',
+              state: {
+                title: 'Logout',
+                icon: 'power-off',
+                use_modal: 'logout-modal'
+              }
+            },
+
+
+- the header now includes a close button:
+
+              {
+                componentName: 'adminui-modal-header',
+                state: {
+                  title: 'Logout'
+                },
+                children: [
+                  {
+                    componentName: 'adminui-modal-close-button',
+                  }
+                ]
+              },
+
+
+- the body is simply some fixed text:
+
+              {
+                componentName: 'adminui-modal-body',
+                state: {
+                  text: 'Are you sure you want to logout?'
+                }
+              },
+
+- it's actually the footer that does all the work, containing the
+*Cancel* and *Logout* (ie confirm) buttons:
+
+              {
+                componentName: 'adminui-modal-footer',
+                children: [
+                  {
+                    componentName: 'adminui-modal-cancel-button',
+                  },
+                  {
+                    componentName: 'adminui-button',
+                    state: {
+                      text: 'Logout',
+                      colour: 'danger',
+                      cls: 'btn-block'
+                    },
+                    hooks: ['logout']
+                  }
+                ]
+              }
+
+Notice that the Cancel button's display and functionality is encapsulated into a
+single, re-usable Web Component - *adminui-modal-cancel-button* - since its behaviour
+will always be the same in every Modal panel: it simply hides the modal panel when clicked.
+
+The behaviour of the *Logout* button is described and controlled by a *hook* method named,
+unsurprisiungly, *logout*.  So let's now take a look at that hook method:
+
+          let hooks = {
+            'adminui-button': {
+              logout: function() {
+                let fn = async function() { 
+                  let responseObj = await QEWD.reply({
+                    type: 'logout'
+                  });
+                  QEWD.disconnectSocket();
+                };
+                this.addHandler(fn);
+              }
+            }
+          };
+
+This adds a click event handler to the *Logout* button - we analysed this kind of logic 
+in detail previously how this works when we looked at the *Login* button.
+
+What the handler will do when the button is clicked is to send a QEWD message with a type of
+*logout*:
+
+
+                  let responseObj = await QEWD.reply({
+                    type: 'logout'
+                  });
+
+We'll see later below what actually happens at the QEWD back end when that message is
+received, but when the response is returned, it invokes this QEWD API:
+
+
+                  QEWD.disconnectSocket();
+
+As its name implies, this tells the browser to disconnect the WebSocket connection to
+QEWD.
+
+However, at this point we want the browser to somehow redirect itself back to the
+login prompt.  That trick is done by making use of an event that the QEWD Client fires 
+(*socketDisconnected*) when the QEWD WebSocket is disconnected:
+
+          QEWD.on('socketDisconnected', function() {
+            toastr.warning('You have successfully logged out');
+            setTimeout(function() {
+              location.reload();
+            }, 3000);
+          });
+
+
+So, a *toastr* warning will appear:
+
+            toastr.warning('You have successfully logged out');
+
+and, after 3 seconds, the browser will reload
+
+              location.reload();
+
+and of course, as you've
+seen every time you click the browser's *refresh* button, a reload will restart the whole process and
+the login modal panel will appear.
+
+
+We now need to connect this *logout-modal* Assembly Module into the *app.js* file:
+
+Near the top, import the Sidebar Menu Assembly Module:
+
+        import {logout_modal_assembly} from './logout-modal.js';
+
+Then load/register it:
+
+            webComponents.addComponent('logout_modal', logout_modal_assembly());
+
+and finally, load it within the *loadMainView()* function.  Notice that its target is the
+DOM's *body* tag:
+
+
+              context.loadMainView = function() {
+                webComponents.loadGroup(components.sidebar_menu, root.sidebarTarget, context);
+                webComponents.loadGroup(components.topbar, root.topbarTarget, context);
+                webComponents.loadGroup(components.logout_modal, body, context);
+              }
+
+
+
+##### The QEWD Back-end *logout* Handler
+
+The final part of the logout functionality we need to put in place is the QEWD back-end message
+handler for the *logout* message type.
+
+Create the folder path for its *index.js* module file:
+
+        C:\qewd
+            |
+            |- qewd-apps
+                    |
+                    |- demo
+                         |
+                         |- logout
+                               |
+                               |- index.js
+
+
+and paste the following contents into the *index.js* file:
+
+        module.exports = function(messageObj, session, send, finished) {
+
+          if (!session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          session.delete();
+          finished({ok: true});
+
+        };
+
+
+Once again, we ensure that the incoming request is for an authenticated user, and if so, it's simply
+a matter of invoking the *delete()* method for the QEWD Session:
+
+
+          session.delete();
+
+and then returning an OK response:
+
+          finished({ok: true});
+
+
+Save the *index.js* file and use the *qewd-monitor-adminui* application to stop all the Worker Processes.
+
+
+
+We should now be ready to try out the logout functionality in the browser: this time when you log in,
+the *sidebar* menu should include a *Logout* option which, when clicked, should bring up a modal dialogue
+panel that asks you to confirm that you really do want to log out.  
+
+Try clicking the Cancel button (or the modal panel's close button, or simply click anywhere outside the panel).
+
+Then try again, and this time click the Logout button to confirm that's what you really want to do.  You should see
+a *toastr* warning that you've successfully logged out, and then 3 seconds later, the page will reload and
+you'll be asked to login again.
+
+
+#### The CRUD Assembly
+
+We've now reached the point where everything in the application is working, **apart** from the very bit we really want
+it to do and set out to describe!
+
+It's taken a while to get here, but by now you've learned most of the core surrounding functionality that 
+you'll need to implement in pretty much any *adminui* / QEWD Application, so it's been time well spent.  
+
+
+
+
+
+
+
 
