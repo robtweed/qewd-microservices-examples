@@ -301,6 +301,11 @@ The first time you start your QEWD system, it installs a bunch of extra things, 
 new sub-folders named *www* and *qewd-apps* appear. QEWD has loaded in everything you need
 for monitoring your system and for developing interactive applications if you wish to do so.
 
+When you're running QEWD with Cach&eacute; or IRIS on Windows, it will also have
+automatically downloaded and installed the correct version of the
+[*mg-dbx*](https://github.com/chrisemunt/mg-dbx) interface along with its associated
+ObjectScript code interface for Cach&eacute; or IRIS SQL.
+
 
 ## Optional: Try the QEWD-Monitor Application
 
@@ -493,6 +498,9 @@ Within this *js* folder, create a text file named *app.js* and paste the followi
 
 Save this file.
 
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_1) to confirm what your application's folder layout and files should look like at
+this stage of this tutorial.
+
 
 ## Step 4: Try out the application.
 
@@ -610,30 +618,8 @@ callback which triggers when the QEWD WebSocket connection is established and re
           // perform the application logic here
         });
 
-
-So, to summarise, your *app.js* file should now look like this:
-
-        import {webComponents} from '../../mg-webComponents.js';
-        import {QEWD} from '../../qewd-client.js';
-
-        document.addEventListener('DOMContentLoaded', function() {
-          QEWD.on('ewd-registered', function() {
-
-            let context = {
-              paths: {
-                adminui: './components/adminui/'
-              }
-            };
-
-            let body = document.getElementsByTagName('body')[0];
-            webComponents.loadWebComponent('adminui-root', body, context);
-
-          });
-          
-          QEWD.start({
-            application: 'demo',
-          });
-        });
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_2) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 
 We'll see how the QEWD Client is used for logging in later. 
@@ -728,36 +714,11 @@ will fire when the *adminui-root* is rendered and ready for use
 - the target into which the initial sidebar Assembly markup is added is accessed via the *adminui-root* WebComponent's
 *sidebarTarget* property (*root.sidebarTarget*)
 
-To summarise these changes, your *app.js* file should now look like this:
-
-        import {webComponents} from '../../mg-webComponents.js';
-        import {QEWD} from '../../qewd-client.js';
-        import {initial_sidebar_assembly} from './initial-sidebar.js';
-
-        document.addEventListener('DOMContentLoaded', function() {
-          QEWD.on('ewd-registered', function() {
-            webComponents.addComponent('initial_sidebar', initial_sidebar_assembly());
-            let context = {
-              paths: {
-                adminui: './components/adminui/'
-              }
-            };
-            
-            let body = document.getElementsByTagName('body')[0];
-            webComponents.loadWebComponent('adminui-root', body, context, function(root) {
-              webComponents.loadGroup(webComponents.components.initial_sidebar, root.sidebarTarget, context);
-            });
-
-          });
-          
-          QEWD.start({
-            application: 'demo'
-          });
-          
-        });
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_3) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 
-Save this and let's test out your changes so far by clicking your browser's reload button
+Test out your changes so far by clicking your browser's reload button
 
 The UI should load its four panels as before, but now you should see the *Person Editor* title and an icon at
 the top of the *sidebar* panel.
@@ -800,38 +761,8 @@ This WebComponent is specifically designed for displaying a copyright notice in 
 
         webComponents.loadGroup(webComponents.components.footer, root.footerTarget, context);
 
-
-To summarise, your *app.js* file should now look like this:
-
-
-        import {webComponents} from '../../mg-webComponents.js';
-        import {QEWD} from '../../qewd-client.js';
-        import {initial_sidebar_assembly} from './initial-sidebar.js';
-        import {footer_assembly} from './footer.js';
-        
-        document.addEventListener('DOMContentLoaded', function() {
-          QEWD.on('ewd-registered', function() {
-            webComponents.addComponent('initial_sidebar', initial_sidebar_assembly());
-            webComponents.addComponent('footer', footer_assembly());
-            let context = {
-              paths: {
-                adminui: './components/adminui/'
-              }
-            };
-            
-            let body = document.getElementsByTagName('body')[0];
-            webComponents.loadWebComponent('adminui-root', body, context, function(root) {
-              webComponents.loadGroup(webComponents.components.initial_sidebar, root.sidebarTarget, context);
-              webComponents.loadGroup(webComponents.components.footer, root.footerTarget, context);
-              });
-
-          });
-          
-          QEWD.start({
-            application: 'demo'
-          });
-          
-        });
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_4) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 
 Try these changes out by clicking your browser's *reload* button.  You should now see the
@@ -921,41 +852,8 @@ Just follow the same pattern as we used for the other panel Assembly modules:
 
         webComponents.loadGroup(webComponents.components.login_modal, body, context);
 
-To summarise, your *app.js* file should now look like this:
-
-
-        import {webComponents} from '../../mg-webComponents.js';
-        import {QEWD} from '../../qewd-client.js';
-        import {initial_sidebar_assembly} from './initial-sidebar.js';
-        import {footer_assembly} from './footer.js';
-        import {login_modal_assembly} from './login-modal.js';
-        
-        document.addEventListener('DOMContentLoaded', function() {
-          QEWD.on('ewd-registered', function() {
-            webComponents.addComponent('initial_sidebar', initial_sidebar_assembly());
-            webComponents.addComponent('footer', footer_assembly());
-            webComponents.addComponent('login_modal', login_modal_assembly());
-            let context = {
-              paths: {
-                adminui: './components/adminui/'
-              }
-            };
-            
-            let body = document.getElementsByTagName('body')[0];
-            webComponents.loadWebComponent('adminui-root', body, context, function(root) {
-              webComponents.loadGroup(webComponents.components.initial_sidebar, root.sidebarTarget, context);
-              webComponents.loadGroup(webComponents.components.footer, root.footerTarget, context);
-              webComponents.loadGroup(webComponents.components.login_modal, body, context);
-            });
-
-          });
-          
-          QEWD.start({
-            application: 'demo'
-          });
-          
-        });
-
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_5) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 Try it out by clicking the browser's *refresh* button
 
@@ -1017,47 +915,8 @@ Note that we are locating an instance of the *admin-modal-root* WebComponent tha
             },
             ...etc
 
-
-So, in summary, your *app.js* file should now look like this:
-
-        import {webComponents} from '../../mg-webComponents.js';
-        import {QEWD} from '../../qewd-client.js';
-        import {initial_sidebar_assembly} from './initial-sidebar.js';
-        import {footer_assembly} from './footer.js';
-        import {login_modal_assembly} from './login-modal.js';
-        
-        document.addEventListener('DOMContentLoaded', function() {
-          QEWD.on('ewd-registered', function() {
-            webComponents.addComponent('initial_sidebar', initial_sidebar_assembly());
-            webComponents.addComponent('footer', footer_assembly());
-            webComponents.addComponent('login_modal', login_modal_assembly());
-            let context = {
-              paths: {
-                adminui: './components/adminui/'
-              },
-              readyEvent: new Event('ready')
-            };
-            
-            document.addEventListener('ready', function() {
-              let modal = webComponents.getComponentByName('adminui-modal-root', 'modal-login');
-              modal.show();
-            });
-            
-            let body = document.getElementsByTagName('body')[0];
-            webComponents.loadWebComponent('adminui-root', body, context, function(root) {
-              webComponents.loadGroup(webComponents.components.initial_sidebar, root.sidebarTarget, context);
-              webComponents.loadGroup(webComponents.components.footer, root.footerTarget, context);
-              webComponents.loadGroup(webComponents.components.login_modal, body, context);
-            });
-
-          });
-          
-          QEWD.start({
-            application: 'demo'
-          });
-          
-        });
-
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_6) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 Click the browser's *refresh* button and see what happens this time.
 
@@ -1234,90 +1093,11 @@ to this:
 
         return {component, hooks};
 
-
-So in summary, your *login-modal.js* file should now look like this:
-
-        export function login_modal_assembly() {
-
-          let component = {
-            componentName: 'adminui-modal-root',
-            state: {
-              name: 'modal-login',
-              static: true
-            },
-            children: [
-              {
-                componentName: 'adminui-modal-header',
-                state: {
-                  title: 'Login'
-                }
-              },
-              {
-                componentName: 'adminui-modal-body',
-                children: [
-                  {
-                    componentName: 'adminui-form',
-                    state: {
-                      name: 'loginForm',
-                      cls: 'user'
-                    },
-                    children: [
-                      {
-                        componentName: 'adminui-form-field',
-                        state: {
-                          label: 'Username:',
-                          placeholder: 'Enter username...',
-                          name: 'username',
-                          focus: true
-                        }
-                      },
-                      {
-                        componentName: 'adminui-form-field',
-                        state: {
-                          type: 'password',
-                          label: 'Password:',
-                          placeholder: false,
-                          name: 'password'
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                componentName: 'adminui-modal-footer',
-                children: [
-                  {
-                    componentName: 'adminui-button',
-                    state: {
-                      text: 'Login',
-                      colour: 'success',
-                      cls: 'btn-block'
-                    },
-                    hooks: ['login']
-                  }
-                ]
-              }
-            ]
-          };
-
-          let hooks = {
-            'adminui-button': {
-              login: function() {
-                let fn = function() {
-                  console.log('button was clicked!');
-                };
-                this.addHandler(fn);
-              }
-            }
-          };
-
-          return {component, hooks};
-
-        };
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_7) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 
-Save this version of the file and try it by clicking the browser's *refresh* button.
+Try this updated version of the application by clicking the browser's *refresh* button.
 
 You should now see *button was clicked!* in the browser's JavaScript console when you click the
 *Login* button.
@@ -1382,30 +1162,8 @@ and the actual event handler function is as follows:
           }
         };
 
-
-So, in summary, your *hooks* object should now look like this:
-
-
-        let hooks = {
-          'adminui-button': {
-            login: function() {
-              let modal = this.getParentComponent('adminui-modal-root');
-              let _this = this;
-              let kpfn =  function(e){
-                if(e.which == 13) {
-                  _this.rootElement.focus();
-                  _this.rootElement.click();
-                }
-              };
-              modal.addHandler(kpfn, 'keypress');
-
-              let fn = function() {
-                console.log('button was clicked!');
-              };
-              this.addHandler(fn);
-            }
-          }
-        };
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_8) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 
 Once again, save the file and click the browser's *refresh* button to try out this change.
@@ -1524,164 +1282,8 @@ recurses down through all any child/grandchild etc sub-components and cleanly re
             modal.remove();
           }
 
-
-So, in summary, at this stage your *app.js* file should look like this:
-
-        import {webComponents} from '../../mg-webComponents.js';
-        import {QEWD} from '../../qewd-client.js';
-        import {initial_sidebar_assembly} from './initial-sidebar.js';
-        import {footer_assembly} from './footer.js';
-        import {login_modal_assembly} from './login-modal.js';
-        
-        document.addEventListener('DOMContentLoaded', function() {
-          QEWD.on('ewd-registered', function() {
-            webComponents.addComponent('initial_sidebar', initial_sidebar_assembly());
-            webComponents.addComponent('footer', footer_assembly());
-            webComponents.addComponent('login_modal', login_modal_assembly(QEWD));
-            let context = {
-              paths: {
-                adminui: './components/adminui/'
-              },
-              readyEvent: new Event('ready')
-            };
-            
-           document.addEventListener('ready', function() {
-              let modal = webComponents.getComponentByName('adminui-modal-root', 'modal-login');
-              modal.show();
-            });
-            
-            let body = document.getElementsByTagName('body')[0];
-            webComponents.loadWebComponent('adminui-root', body, context, function(root) {
-              webComponents.loadGroup(webComponents.components.initial_sidebar, root.sidebarTarget, context);
-              webComponents.loadGroup(webComponents.components.footer, root.footerTarget, context);
-              webComponents.loadGroup(webComponents.components.login_modal, body, context);
-            });
-
-          });
-          
-          QEWD.on('error', function(response) {
-            if (response.type === 'error') {
-              toastr.error('Programming logic error: ' + response.message);
-            }
-            else {
-              toastr.error(response.message.error);
-            }
-          });
-
-          QEWD.log = true;
-          
-          QEWD.start({
-            application: 'demo'
-          });
-          
-        });
-
-
-
-and your *login-modal.js* Assembly file should look like this:
-
-
-        export function login_modal_assembly(QEWD) {
-
-          let component = {
-            componentName: 'adminui-modal-root',
-            state: {
-              name: 'modal-login',
-              static: true
-            },
-            children: [
-              {
-                componentName: 'adminui-modal-header',
-                state: {
-                  title: 'Login'
-                }
-              },
-              {
-                componentName: 'adminui-modal-body',
-                children: [
-                  {
-                    componentName: 'adminui-form',
-                    state: {
-                      name: 'loginForm',
-                      cls: 'user'
-                    },
-                    children: [
-                      {
-                        componentName: 'adminui-form-field',
-                        state: {
-                          label: 'Username:',
-                          placeholder: 'Enter username...',
-                          name: 'username',
-                          focus: true
-                        }
-                      },
-                      {
-                        componentName: 'adminui-form-field',
-                        state: {
-                          type: 'password',
-                          label: 'Password:',
-                          placeholder: false,
-                          name: 'password'
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                componentName: 'adminui-modal-footer',
-                children: [
-                  {
-                    componentName: 'adminui-button',
-                    state: {
-                      text: 'Login',
-                      colour: 'success',
-                      cls: 'btn-block'
-                    },
-                    hooks: ['login']
-                  }
-                ]
-              }
-            ]
-          };
-
-          let hooks = {
-            'adminui-button': {
-              login: function() {
-                let modal = this.getParentComponent({match: 'adminui-modal-root'});
-                let _this = this;
-
-                let kpfn =  function(e){
-                  if(e.which == 13) {
-                    // click the button to submit the form
-                    _this.rootElement.focus();
-                    _this.rootElement.click();
-                  }
-                };
-
-                modal.addHandler(kpfn, 'keypress');
-
-                let fn = async function() {
-                  let form = _this.getComponentByName('adminui-form', 'loginForm');
-                  let responseObj = await QEWD.reply({
-                    type: 'login',
-                    params: form.fieldValues
-                  });
-                  if (!responseObj.message.error) {
-                    let modal = _this.getComponentByName('adminui-modal-root', 'modal-login');
-                    modal.hide();
-                    modal.remove();
-                  }
-                };
-                this.addHandler(fn);
-              }
-            }
-          };
-
-          return {component, hooks};
-
-        };
-
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_9) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 Time to try these changes out again.  Click the browser *refresh* button.  This time, try
 entering something into the username and password fields and click the button.  You should
@@ -1973,6 +1575,10 @@ And finally we signal that we're finished processing and return a simple object 
           finished({ok: true});
 
 
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_10) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+
+
 #### Restart QEWD to Load the new *qewd-apps* Handlers
 
 Whenever you first add a new application sub-folder to the *qewd-apps* folder, you **must** restart
@@ -2183,7 +1789,7 @@ to load the new *sidebar_menu* Assembly (which is described in the next section 
             });
 
 So, by defining the *loadMainView* function here, we're able to make use of the closure around
-the *components*, *root* and *context* objects needed by the *loadGroup()* API.
+the *components*, *body*, *root* and *context* objects needed by the *loadGroup()* API.
 
 Let's test that this is going to work before going to the next step.  To do that, make a temporary
 edit to the *loadMainView()* function:
@@ -2196,6 +1802,9 @@ edit to the *loadMainView()* function:
 In other words, we'll temporarily comment out the *loadGroup()* API since we haven't yet defined
 the *sidebar_menu* Assembly, but we'll just confirm that the *Login* button's *hook* method 
 correctly invokes it.
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_11) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 Click the browser's *refresh* button and, after logging in with the correct *username* and *password*,
 you should see the modal panel disappear, and in the browser's JavaScript console you should see
@@ -2267,170 +1876,9 @@ Then load/register it:
 
 It will now be available when the *loadMainView()* function loads it into the UI.
 
-To summarise, at this stage, here's what your *app.js* file should look now look like:
 
-        import {webComponents} from '../../mg-webComponents.js';
-        import {QEWD} from '../../qewd-client.js';
-        import {initial_sidebar_assembly} from './initial-sidebar.js';
-        import {footer_assembly} from './footer.js';
-        import {login_modal_assembly} from './login-modal.js';
-        import {sidebar_menu_assembly} from './sidebar-menu.js';
-        
-        document.addEventListener('DOMContentLoaded', function() {
-          QEWD.on('ewd-registered', function() {
-            webComponents.addComponent('initial_sidebar', initial_sidebar_assembly());
-            webComponents.addComponent('footer', footer_assembly());
-            webComponents.addComponent('login_modal', login_modal_assembly(QEWD, webComponents));
-            webComponents.addComponent('sidebar_menu', sidebar_menu_assembly());
-            let context = {
-              paths: {
-                adminui: './components/adminui/'
-              },
-              readyEvent: new Event('ready')
-            };
-            
-           document.addEventListener('ready', function() {
-              let modal = webComponents.getComponentByName('adminui-modal-root', 'modal-login');
-              modal.show();
-            });
-            
-            let body = document.getElementsByTagName('body')[0];
-            webComponents.loadWebComponent('adminui-root', body, context, function(root) {
-              let components = webComponents.components;
-              webComponents.loadGroup(components.initial_sidebar, root.sidebarTarget, context);
-              webComponents.loadGroup(components.footer, root.footerTarget, context);
-              webComponents.loadGroup(components.login_modal, body, context);
-
-              context.loadMainView = function() {
-                webComponents.loadGroup(components.sidebar_menu, root.sidebarTarget, context);
-              }
-              
-            });
-
-          });
-          
-          QEWD.on('error', function(response) {
-            if (response.type === 'error') {
-              toastr.error('Programming logic error: ' + response.message);
-            }
-            else {
-              toastr.error(response.message.error);
-            }
-          });
-          
-          QEWD.log = true;
-          
-          QEWD.start({
-            application: 'demo'
-          });
-          
-        });
-
-
-and your *login-modal.js* Module file should look like this:
-
-        export function login_modal_assembly(QEWD) {
-
-          let component = {
-            componentName: 'adminui-modal-root',
-            state: {
-              name: 'modal-login',
-              static: true
-            },
-            children: [
-              {
-                componentName: 'adminui-modal-header',
-                state: {
-                  title: 'Login'
-                }
-              },
-              {
-                componentName: 'adminui-modal-body',
-                children: [
-                  {
-                    componentName: 'adminui-form',
-                    state: {
-                      name: 'loginForm',
-                      cls: 'user'
-                    },
-                    children: [
-                      {
-                        componentName: 'adminui-form-field',
-                        state: {
-                          label: 'Username:',
-                          placeholder: 'Enter username...',
-                          name: 'username',
-                          focus: true
-                        }
-                      },
-                      {
-                        componentName: 'adminui-form-field',
-                        state: {
-                          type: 'password',
-                          label: 'Password:',
-                          placeholder: false,
-                          name: 'password'
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                componentName: 'adminui-modal-footer',
-                children: [
-                  {
-                    componentName: 'adminui-button',
-                    state: {
-                      text: 'Login',
-                      colour: 'success',
-                      cls: 'btn-block'
-                    },
-                    hooks: ['login']
-                  }
-                ]
-              }
-            ]
-          };
-
-          let hooks = {
-            'adminui-button': {
-              login: function() {
-                let modal = this.getParentComponent({match: 'adminui-modal-root'});
-                let _this = this;
-
-                let kpfn =  function(e){
-                  if(e.which == 13) {
-                    // click the button to submit the form
-                    _this.rootElement.focus();
-                    _this.rootElement.click();
-                  }
-                };
-
-                modal.addHandler(kpfn, 'keypress');
-
-                let fn = async function() {
-                  let form = _this.getComponentByName('adminui-form', 'loginForm');
-                  let responseObj = await QEWD.reply({
-                    type: 'login',
-                    params: form.fieldValues
-                  });
-                  if (!responseObj.message.error) {
-                    let modal = _this.getComponentByName('adminui-modal-root', 'modal-login');
-                    modal.hide();
-                    modal.remove();
-                    _this.context.loadMainView();
-                  }
-                };
-                this.addHandler(fn);
-              }
-            }
-          };
-
-          return {component, hooks};
-
-        };
-
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_12) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 Try out this latest by clicking your browser's *refresh* button.
 
@@ -2476,6 +1924,9 @@ and finally, load it within the *loadMainView()* function:
                 webComponents.loadGroup(components.sidebar_menu, root.sidebarTarget, context);
                 webComponents.loadGroup(components.topbar, root.topbarTarget, context);
               }
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_13) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 Try out this version in your browser: you should now see the welcome text in the *topbar*.
 
@@ -2666,6 +2117,9 @@ we set in the *login* handler.
 
 Save the *index.js* file.
 
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_14) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+
 
 ##### IMPORTANT: Stop all QEWD Worker Processes
 
@@ -2772,6 +2226,9 @@ And then change the *topbar.js* Assembly Module to this:
         };
 
 
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_15) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+
 Try it out by clicking the browser's *refresh* button.  You should now see an arrow widget at the bottom of the
 *sidebar* menu which, if clicked, will collapse the sidebar.
 
@@ -2862,7 +2319,7 @@ property of *modal-logout* should be brought into play when the option is clicke
 The next step is to create the modal logout Assembly Module.  In your application's *js* 
 folder, create a file named *logout_modal.js*.  Paste the following content into it:
 
-        export function define_logout_modal(QEWD) {
+        export function logout_modal_assembly(QEWD) {
 
           let component = {
             componentName: 'adminui-modal-root',
@@ -3077,7 +2534,10 @@ Near the top, import the Sidebar Menu Assembly Module:
 
 Then load/register it:
 
-            webComponents.addComponent('logout_modal', logout_modal_assembly());
+            webComponents.addComponent('logout_modal', logout_modal_assembly(QEWD));
+
+Note that we need to pass the *qewd-client* object (*QEWD*) to it as an argument as
+the Assembly needs access to its APIs.
 
 and finally, load it within the *loadMainView()* function.  Notice that its target is the
 DOM's *body* tag:
@@ -3136,7 +2596,8 @@ and then returning an OK response:
 
 Save the *index.js* file and use the *qewd-monitor-adminui* application to stop all the Worker Processes.
 
-
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_16) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 We should now be ready to try out the logout functionality in the browser: this time when you log in,
 the *sidebar* menu should include a *Logout* option which, when clicked, should bring up a modal dialogue
@@ -3157,6 +2618,17 @@ it to do and set out to describe!
 It's taken a while to get here, but by now you've learned most of the core surrounding functionality that 
 you'll need to implement in pretty much any *adminui* / QEWD Application, so it's been time well spent.  
 
+
+The good news is that the entire CRUD cycle for a record can be handled by a single 
+pre-built *adminui* WebComponent Assembly, aptly named *adminui-crud*.  
+
+So let's see how it can be used.
+
+The *adminui-crud* Assembly Module is a bit different from the standard ones, in that it encapsulates
+a complete set of pre-determined functionality - the CRUD cycle for a record - but in a way that can
+be customised.
+
+We can begin by loading it as if it was a standard Assembly Module.  In the *app.js* file,
 
 
 
