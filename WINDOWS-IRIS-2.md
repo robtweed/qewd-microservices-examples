@@ -269,6 +269,26 @@ eg your top-level folder structure should look like this:
 When it completes, you're ready to start QEWD
 
 
+## Starting QEWD for the First Time
+
+Start QEWD for the first time as follows:
+
+        cd \qewd
+        npm start
+
+The first time you start QEWD, it installs a bunch of extra things, so you'll see
+new sub-folders named *www* and *qewd-apps* appear. QEWD has loaded in everything you need
+for monitoring your system and for developing interactive applications if you wish to do so.
+
+When you're running QEWD with Cach&eacute; or IRIS on Windows, it will also have
+automatically downloaded and installed the correct version of the
+[*mg-dbx*](https://github.com/chrisemunt/mg-dbx) interface along with its associated
+ObjectScript code interface for Cach&eacute; or IRIS SQL.
+
+After this initial installation has completed, QEWD will stop and ask you
+to restart.  See the instructions below:
+
+
 ## Starting QEWD
 
 Each time you want to start QEWD, within your Windows Console session, 
@@ -294,17 +314,6 @@ QEWD is ready for use when you see this (the poolsize and port will depend on yo
         ========================================================
         QEWD.js is listening on port 3000
         ========================================================
-
-
-
-The first time you start your QEWD system, it installs a bunch of extra things, so you'll see
-new sub-folders named *www* and *qewd-apps* appear. QEWD has loaded in everything you need
-for monitoring your system and for developing interactive applications if you wish to do so.
-
-When you're running QEWD with Cach&eacute; or IRIS on Windows, it will also have
-automatically downloaded and installed the correct version of the
-[*mg-dbx*](https://github.com/chrisemunt/mg-dbx) interface along with its associated
-ObjectScript code interface for Cach&eacute; or IRIS SQL.
 
 
 ## Optional: Try the QEWD-Monitor Application
@@ -2075,6 +2084,17 @@ and uses its response to dynamically set the *text* state property of the Compon
                   });
 
 
+You'll also need to amend the *app.js* file and pass the *QEWD* object to the *topbar* Assembly
+when registering it.  So edit this line:
+
+        webComponents.addComponent('topbar', topbar_assembly());
+
+and change it to:
+
+        webComponents.addComponent('topbar', topbar_assembly(QEWD));
+
+
+
 So that's the front-end functionality in place.  Now let's write the QEWD back-end message handler
 method for that *getGreeting* message.
 
@@ -2628,7 +2648,810 @@ The *adminui-crud* Assembly Module is a bit different from the standard ones, in
 a complete set of pre-determined functionality - the CRUD cycle for a record - but in a way that can
 be customised.
 
-We can begin by loading it as if it was a standard Assembly Module.  In the *app.js* file,
+We can begin by loading it as if it was a standard Assembly Module.  In the *app.js* file, import it
+as follows:
+
+        import {crud_assembly} from '../../components/adminui/components/adminui-crud.js';
+
+This will fetch it directly from the *adminui* WebComponent library.
+
+Then register it as *person_page*.  It needs access to the *qewd-client* APIs, so pass the *QEWD* object as an argument:
+
+        webComponents.addComponent('person_page', crud_assembly(QEWD));
+
+Whilst these two steps above should be familiar by now, the next step is a new one.
+
+If you remember in the *sidebar-menu* Assembly, the *nav* menu option for selecting the *Person
+Editor* page looked like this:
+
+            {
+              componentName: 'adminui-sidebar-nav-item',
+              state: {
+                title: 'Person Editor',
+                icon: 'user',
+                contentPage: 'person',
+                active: true
+              }
+            },
+
+This tells *mg-webComponents* to load a page named *person* into the UI's *content area*.  This
+requires a special API that we apply to the Assembly we just registered as *person_page*:
+
+        webComponents.register('person', webComponents.components.person_page);
+
+The *register()* API makes the Assembly available for loading into the *adminui's content area*.  
+It actually adds some additional
+Bootstrap markup to the Assembly so that it can be lazily-loaded into the *content area*, and also so that
+it can be shown and hidden when selected and deselected respectively via sidebar menu options.
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_17) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+
+Try this change out by clicking the browser's *refresh* button.  This time, after you log in, if you
+click the *Person Editor* option in the *sidebar* menu, you'll see the *adminui-crud* page appear in the UI's
+*content area*.
+
+
+You'll also see a red *toastr* error appear in the top right corner - ignore that for now.
+
+
+Let's make one further UI behaviour change before we start working on the CRUD page itself.  In this example, we
+really only have this one page to display, so rather than (or as well as) selecting it from the *sidebar* menu, we
+could save a mouse-click for the user and display it in the *content area* by default when the user has logged in.
+
+We can do that my changing the *loadMainView()* function in the *app.js* module to this:
+
+        context.loadMainView = function() {
+          webComponents.loadGroup(components.sidebar_menu, root.sidebarTarget, context);
+          webComponents.loadGroup(components.topbar, root.topbarTarget, context);
+          webComponents.loadGroup(components.logout_modal, body, context);
+          webComponents.loadGroup(components.person_page, root.contentTarget, context);   <======******
+        }
+
+Try thus change by clicking the browser's *refresh* button again.  This time, after logging in, the CRUD
+page will appear automatically in the *content area*.
+
+
+#### Customising the CRUD Page
+
+What you're seeing in the UI's *content area* is its default appearance.  As you can see there are various
+parts to what it initially displays:
+
+- a main heading: *Record Maintenance Page*
+
+- a card with a heading: *Summary of Records*
+
+- a green button with a + in it which, when clicked, makes a second card appear
+
+  - the second card has a title of New Record
+  - whilst there are no form fields in this second card, it does have a *Save* button
+  - if you click the *Save* button, a red *toastr* *Handler Not Defined* message appears
+
+
+We have control over all these aspects of the display and its behaviour.
+
+Let's start by changing the main heading.
+
+All the customisation is defined in a single object which we're going to call *personAssemblyState*.
+Although we could define this object within the *app.js* file, you'll find that it can eventually get quite big,
+and to keep the *app.js* file clean and tidy, I'm going to use a separate module for
+the *personAssemblyState* object, and import that module into *app.js*.
+
+So, in your *js* folder, create a new text file named *personAssemblyState.js* and paste the following
+content into it:
+
+        let personAssemblyState = {
+          name: 'person',
+          title: 'Person Class/Document Editor'
+        };
+
+        export {personAssemblyState};
+
+
+We're just going to specify two properties for now:
+
+- a logical name for our instance of the *adminui-crud* Assembly: *person*
+- our own main title.
+
+Next, we need to import this module into the *app.js* module, so, edit *app.js* and add, along with the
+other *import* commands, this line:
+
+        import {personAssemblyState} from './personAssemblyState.js';
+
+
+Next, find the line where the *adminui-crud* Assembly was registered, ie:
+
+        webComponents.addComponent('person_page', crud_assembly(QEWD));
+
+
+and add the *personAssemblyState* object as the second argument, ie:
+
+        webComponents.addComponent('person_page', crud_assembly(QEWD, personAssemblyState));
+
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_18) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+
+
+Test these changes by clicking the browser's *refresh* button.  After logging in, you should now see our
+customised title: *Person Class/Document Editor*.
+
+
+##### Customising the Summary Card
+
+Let's now do some customisation of the Summary Card.
+
+Edit the *personAssemblyState.js* file to contain the following:
+
+        let personAssemblyState = {
+          name: 'person',
+          title: 'Person Class/Document Editor',
+          summary: {
+            title: 'Current Person Records',
+            titleColour: 'primary',
+            btnIcon: 'user-plus',
+            btnColour: 'success',
+            btnTooltip: 'Add a New Person',
+          }
+        };
+
+        export {personAssemblyState};
+
+
+As you can see, all the customisation of the Summary Card is done via a sub-object named *summary*.
+
+After making these changes, click the browser's *refresh* button and you'll see how the Summary Card has changed.
+
+
+##### Fetching Existing Summary Records
+
+Let's sort out that error you'll be seeing every time the Person Editor page appears.  If you read the error text,
+you'll see that it's coming from the QEWD back-end, telling us that it can't find a handler method for a message
+of type *getSummary*.  If you also look in the browser's JavaScript console. you'll see that it has automatically
+sent a *getSummary* message to QEWD:
+
+        sent: {"type":"getSummary","params":{"properties":["name"]}}
+
+By default, the CRUD Assembly will use the message type *getSummary* - what it's trying to do is to get the QEWD
+back-end to send it a summary list of records to populate a table.  Now, not only do we not have a handler for
+messages of type *getSummary*, we might want to use a different type: perhaps one that is more intuitive for our
+specific use-case.  So, let's further customise the CRUD Assembly and get it to send a message of type 
+*personsSummary*.
+
+Edit the *personAssemblyState.js* file to contain the following:
+
+        let personAssemblyState = {
+          name: 'person',
+          title: 'Person Class/Document Editor',
+          summary: {
+            title: 'Current Person Records',
+            titleColour: 'primary',
+            btnIcon: 'user-plus',
+            btnColour: 'success',
+            btnTooltip: 'Add a New Person',
+            qewd: {
+              getSummary: 'personsSummary',
+            }
+          }
+        };
+
+        export {personAssemblyState};
+
+
+Next, we need to actually create the back-end handler for messages of type *personsSummary*.
+
+
+##### The Person Record Database Structure
+
+Before we can create a back-end message handler, the time has come to decide what our *Person* records will look like
+within the Cach&eacute; or IRIS database.
+
+In this tutorial I'm going to show you two alternative versions of essentially the same record structure:
+
+- one using the QEWD-JSdb persistent JSON abstraction;
+- one using Cach&eacute; / IRIS Objects
+
+The Person record structure I'll use for the purposes of this example is deliberately very simple:
+
+
+        +--------+----+------+--------+------+
+        | Person | id | name | gender | city |
+        |        | == |      |        |      |
+        +--------+----+------+--------+------+
+
+Each record will have a unique integer primary key (*id*), and three properties:
+
+- name
+- gender
+- city
+
+
+For the QEWD-JSdb implementation, I'll therefore be using the following persistent JSON structure:
+
+        {
+          "by_id": {
+            {{id}}: {
+              "name": {{name}},
+              "gender": {{gender}},
+              "city": {{city}}
+            }
+          }
+        }
+
+
+For the Cach&eacute;/IRIS Objects option, you'll need to save and compile this Class definition:
+
+        Class User.Person Extends %Persistent
+        {
+          Property Name As %String;
+          Property Gender As %String;
+          Property City As %String;
+        }
+
+By the way, this is the same Person data structure that was used in the 
+[REST MicroServices Tutorial](https://github.com/robtweed/qewd-microservices-examples/blob/master/WINDOWS-IRIS-1.md)
+
+
+##### Back to the *personsSummary* Handler
+
+
+Now, of course, right now we don't have any Person records in either format, so a *personsSummary*
+request will simply return an empty array.  Nevertheless, we'll fully implement how it needs
+to operate now, and then as and when new Person records are added later, they'll get
+retrieved.
+
+
+Create the folder path for its *index.js* module file:
+
+        C:\qewd
+            |
+            |- qewd-apps
+                    |
+                    |- demo
+                         |
+                         |- personsSummary
+                               |
+                               |- index.js
+
+
+and paste the following contents into the *index.js* file:
+
+###### QEWD-JSdb Version
+
+        module.exports = function(messageObj, session, send, finished) {
+          if (!session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          if (!messageObj.params) {
+            return finished({error: 'No params present in request'});
+          }
+           if (!messageObj.params.properties) {
+            return finished({error: 'No properties defined in request'});
+          }
+
+          let person = this.db.use('Person', 'by_id');
+          let results = [];
+          let properties = messageObj.params.properties;
+
+          person.forEachChild(function(id, record) {
+            let result = {};
+            result.id = id;
+            properties.forEach(function(property) {
+              if (property !== 'id') {
+                result[property] = record.$(property).value;
+              }
+            });
+            results.push(result);
+          });
+
+          finished({summary: results});
+
+        };
+
+
+This first ensures that the incoming request was from an authentication (ie logged-on) user.  It
+then checks that the incoming request included a *params* object and, within that, a *properties*
+object.  We'll see later why those are important.
+
+It then instantiates a QEWD-JSdb DocumentNode Object pointing to a persistent JSON object named
+*Person* and a property of *by_id*:
+
+          let person = this.db.use('Person', 'by_id');
+
+We'll return later to examine the rest of its logic, but for now we can summarise by saying it
+will look for all child records and add their Id and a set of selected properties to a *results*
+array:
+
+          let results = [];
+
+          person.forEachChild(function(id, record) {
+            ...etc
+
+            results.push(result);
+          });
+
+That *results* array is then sent back to the browser via the *finished()* method.
+
+
+###### Cach&eacute;/IRIS Version
+
+        module.exports = function(messageObj, session, send, finished) {
+          if (!session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          if (!messageObj.params) {
+            return finished({error: 'No params present in request'});
+          }
+           if (!messageObj.params.properties) {
+            return finished({error: 'No properties defined in request'});
+          }
+          
+          let results = [];
+          let properties = messageObj.params.properties;
+          let names = {};
+          properties.forEach(function(property) {
+            if (property !== 'id') {
+              let name = property.charAt(0).toUpperCase() + property.slice(1)
+              names[name] = property;
+            }
+          });
+          
+          let db = this.db.dbx;
+          let query = db.sql({sql: "select * from SQLUser.Person", type: "Cache"});
+          let result = query.execute();
+          let res;
+          let property;
+          
+           while ((result = query.next()) !== null) {
+              res = {};
+              res.id = result.ID;
+              for (property in names) {
+                res[names[property]] = result[property];
+              }
+              results.push(res);
+           }
+           query.cleanup();
+
+          finished({summary: results});
+
+        };
+
+
+
+This first ensures that the incoming request was from an authentication (ie logged-on) user.  It
+then checks that the incoming request included a *params* object and, within that, a *properties*
+object.  We'll see later why those are important.
+
+It then invokes a Cach&eacute;/IRIS SQL query via the *mg-dbx sql* API to retrieve all Person records that exist:
+
+          let db = this.db.dbx;
+          let query = db.sql({sql: "select * from SQLUser.Person", type: "Cache"});
+          let result = query.execute();
+
+We'll return later to examine the rest of its logic, but for now we can summarise by saying it
+goes through the *resultSet* created by this query and adds each *resultSet* record's Id along with
+ a set of selected properties to a *results* array:
+
+That *results* array is then sent back to the browser via the *finished()* method.
+
+
+Save the version of the *index.js* file you want to use.
+
+Of course, you'll now need to use the *qewd-monitor-adminui* application to stop the Worker processes,
+to ensure that this new back-end handler method is available to you when needed.
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_19) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+Note that the Cach&eacute;/IRIS version of the *personsSummary* handler has been named *index.js.class*.  If you
+want to use it, make sure you rename it to *index.js*
+
+Try it out by clicking the browser's *refresh* button and logging in.  Hopefully, this time you'll
+not get that red *toastr* error, but now you'll see that the Summary Card contains a table that tells
+you it's empty:
+
+        No data available in table
+
+That's not surprising, since we haven't yet created any Person records!
+
+
+#### Adding a Person Record
+
+The *adminui-crud* Assembly provides you with a button (in the top right of the Summary Card header)
+that allows you to add a new record.
+
+Currently if you click it, as we saw earlier, a second Card - the New Record card - will appear,
+but all it will currently contain is a Save button.
+
+So the next step is to provide the customisation information that will allow us to add a form into which we
+can enter the properties of a new record.  In our example that will mean a form that allows us to enter:
+
+- the person's name
+- the person's gender
+- the person's city of residence
+
+You'll also see that if you click that Save button, it will send, by default, a *saveRecord* request to the QEWD
+back.  A red *toastr* error will then appear, because we haven't yet created the corresponding QEWD message
+handler.  
+
+So, in addition to the form, we'll need to create a QEWD back-end message
+handler for validating the form details and, if OK, creating a new Person record.
+
+Let's work through these steps now.
+
+##### Defining the New Person Form
+
+
+The first thing we'll customise in the New Person Card is the title and card width.  We can do that by
+editing the *personAssemblyState.js* file and add this to the object:
+
+          detail: {
+            cardWidth: '500px',
+            newRecordTitle: 'Enter New Person',
+            titleColour: 'primary'
+          }
+
+
+The New Person Card properties are customised by an object named *detail*.
+
+To clarify, the *personAssemblyState.js* file should now look like this:
+
+        let personAssemblyState = {
+          name: 'person',
+          title: 'Person Class/Document Editor',
+          summary: {
+            title: 'Current Person Records',
+            titleColour: 'primary',
+            btnIcon: 'user-plus',
+            btnColour: 'success',
+            btnTooltip: 'Add a New Person',
+            qewd: {
+              getSummary: 'personsSummary',
+            }
+          },
+          detail: {
+            cardWidth: '500px',
+            newRecordTitle: 'Enter New Person',
+            titleColour: 'primary'
+          }
+        };
+
+        export {personAssemblyState};
+
+
+Feel free to see the effect of this change by clicking the browser's *refresh* button.
+
+The form fields we need are also defined within this *detail* object, via an array named *fields*. 
+Edit it again so that the *detail* object looks like this:
+
+          detail: {
+            cardWidth: '500px',
+            newRecordTitle: 'Enter New Person',
+            titleColour: 'primary',
+            fields: [
+              {
+                name: 'name',
+                data_property: 'name',
+                label: 'Name',
+                type: 'text',
+                labelWidth: 4
+              },
+              {
+                name: 'gender',
+                data_property: 'gender',
+                label: 'Gender',
+                type: 'select',
+                labelWidth: 4,
+                options: [
+                  {text: 'Select...', value: 'invalid'},
+                  {text: 'Male', value: 'm'},
+                  {text: 'Female', value: 'f'},
+                  {text: 'Not Specified', value: 'x'}
+                ]
+              },
+              {
+                name: 'city',
+                data_property: 'city',
+                label: 'City',
+                type: 'text',
+                labelWidth: 4
+              }
+            ]
+          },
+
+
+As you can see, we're adding the three fields for *name*, *gender* and *city*.  Each form field is
+defined by specifying:
+
+- name: the logical name for this form field
+- data_property: the property name for this field within the saved record.  This is actually optional.  if
+omitted, the *name* property value is used for the *data_property* also.  So in our example we could leave this
+property out of the *fields* array elements
+- label: The label to display before the input field
+- type: the HTML form field type
+- labelWidth: controls the proportion of space occupied by the label versus the corresponding input field.  A
+starting point of 4 is recommended, and then try adjusting it above or below that until you're happy with the
+layout
+- options: (select type only) defines the select drop-down options.  For each you should specify the text
+and corresponding value.  The value is what is sent to the QEWD back-end whilst the text is what appears in the UI.
+
+Save your changes and click the browser's *refresh* button.  After logging in, click the Add New Person button.
+The New Person card should now contain the three form fields we need!
+
+##### Customising the Save Button
+
+The *adminui-crud* also allows you to customise the New Person Card's Save button if you want.
+
+It's controlled by another new sub-object within the *personAssemblyState* object: *update*.
+
+Try adding this to it:
+
+          update: {
+            btnText: 'Save Person',
+            btnColour: 'success'
+          }
+
+
+ie your *personAssemblyState.js* file should now look like this:
+
+        let personAssemblyState = {
+          name: 'person',
+          title: 'Person Class/Document Editor',
+          summary: {
+            title: 'Current Person Records',
+            titleColour: 'primary',
+            btnIcon: 'user-plus',
+            btnColour: 'success',
+            btnTooltip: 'Add a New Person',
+            qewd: {
+              getSummary: 'personsSummary',
+            }
+          },
+          detail: {
+            cardWidth: '500px',
+            newRecordTitle: 'Enter New Person',
+            titleColour: 'primary',
+            fields: [
+              {
+                name: 'name',
+                data_property: 'name',
+                label: 'Name',
+                type: 'text',
+                labelWidth: 4
+              },
+              {
+                name: 'gender',
+                data_property: 'gender',
+                label: 'Gender',
+                type: 'select',
+                labelWidth: 4,
+                options: [
+                  {text: 'Select...', value: 'invalid'},
+                  {text: 'Male', value: 'm'},
+                  {text: 'Female', value: 'f'},
+                  {text: 'Not Specified', value: 'x'}
+                ]
+              },
+              {
+                name: 'city',
+                data_property: 'city',
+                label: 'City',
+                type: 'text',
+                labelWidth: 4
+              }
+            ]
+          },
+          update: {
+            btnText: 'Save Person',
+            btnColour: 'success',
+          }
+        };
+
+        export {personAssemblyState};
+
+
+Try reloading the page in the browser again and you'll see this customised *Save* button.
+
+By default, clicking the *Save* button will send a request to QEWD with a type of *saveRecord*.
+We can also customise that.  Let's change the type that will be sent to *updatePerson*.  It's
+also done via the *update* sub-object:
+
+          update: {
+            btnText: 'Save Person',
+            btnColour: 'success',
+            qewd: {
+              save: 'updatePerson'
+            }
+          }
+
+Once again, try reloading the page in the browser again and you'll see this customised *Save* button.
+
+Now try entering some values into the form fields.  For example:
+
+- name: Rob
+- gender: male
+- city: Redhill
+
+When you click the Save button, if you examine the browser's JavaScript console, you'll see that it
+sent the following request:
+
+        sent: {"type":"updatePerson","params":{"id":"new-record","name":"Rob","gender":"m","city":"Redhill"}}
+
+However, you'll still be seeing a red *toastr* error because there isn't yet any *updatePerson* message
+handler defined.
+
+
+##### Create the *updatePerson* QEWD Back-end Handler
+
+This should be becoming familiar now.  Create the folder path for the *updatePerson*'s *index.js* module file:
+
+        C:\qewd
+            |
+            |- qewd-apps
+                    |
+                    |- demo
+                         |
+                         |- updatePerson
+                               |
+                               |- index.js
+
+
+and paste the following contents into the *index.js* file:
+
+###### QEWD-JSdb Version
+
+        module.exports = function(messageObj, session, send, finished) {
+          if (!session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          if (!messageObj.params) {
+            return finished({error: 'No params present in request'});
+          }
+
+          let name = messageObj.params.name;
+          if (!name || name === '') {
+            return finished({error: 'Missing name value'});
+          }
+
+          let gender = messageObj.params.gender;
+          if (!gender || gender === '' || gender === 'invalid') {
+            return finished({error: 'Missing gender value'});
+          }
+
+          let city = messageObj.params.city;
+          if (!city || city === '') {
+            return finished({error: 'Missing city value'});
+          }
+
+          let persons = this.db.use('Person');
+
+          /*
+            Create a new Person Id by incrementing the id_counter value
+          */
+
+
+          let id = persons.$('id_counter').increment();
+
+          /*
+            Save the data for this new Person record
+          */
+
+          persons.$(['by_id', id]).setDocument({
+            name: name,
+            gender: gender,
+            city: city
+          }); 
+          
+          /*
+            Finish processing, and return the new Person id
+          */
+
+          finished({
+            ok: true,
+            id: id
+          });
+        };
+
+
+
+This first ensures that the incoming request was from an authentication (ie logged-on) user.  It
+then checks that the incoming request included a *params* object and, within that, non-empty values
+for *name*, *gender* and *city*.
+
+It then instantiates a QEWD-JSdb DocumentNode Object pointing to a persistent JSON object named
+*Person*:
+
+          let persons = this.db.use('Person');
+
+and obtains a new *id* value for the incoming new person record.
+
+          let id = persons.$('id_counter').increment();
+
+It then saves the data into the *person* object using the allocated *id*:
+
+          persons.$(['by_id', id]).setDocument({
+            name: name,
+            gender: gender,
+            city: city
+          }); 
+
+The *id* for this new *person* record is then sent back to the browser via the *finished()* method, along with
+an *ok* flag for good measure:
+
+          finished({
+            ok: true,
+            id: id
+          });
+
+
+
+###### Cach&eacute;/IRIS Version
+
+        module.exports = function(messageObj, session, send, finished) {
+          if (!session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          if (!messageObj.params) {
+            return finished({error: 'No params present in request'});
+          }
+           if (!messageObj.params.properties) {
+            return finished({error: 'No properties defined in request'});
+          }
+          
+          let results = [];
+          let properties = messageObj.params.properties;
+          let names = {};
+          properties.forEach(function(property) {
+            if (property !== 'id') {
+              let name = property.charAt(0).toUpperCase() + property.slice(1)
+              names[name] = property;
+            }
+          });
+          
+          let db = this.db.dbx;
+          let query = db.sql({sql: "select * from SQLUser.Person", type: "Cache"});
+          let result = query.execute();
+          let res;
+          let property;
+          
+           while ((result = query.next()) !== null) {
+              res = {};
+              res.id = result.ID;
+              for (property in names) {
+                res[names[property]] = result[property];
+              }
+              results.push(res);
+           }
+           query.cleanup();
+
+          finished({summary: results});
+
+        };
+
+
+
+This first ensures that the incoming request was from an authentication (ie logged-on) user.  It
+then checks that the incoming request included a *params* object and, within that, a *properties*
+object.  We'll see later why those are important.
+
+It then invokes a Cach&eacute;/IRIS SQL query via the *mg-dbx sql* API to retrieve all Person records that exist:
+
+          let db = this.db.dbx;
+          let query = db.sql({sql: "select * from SQLUser.Person", type: "Cache"});
+          let result = query.execute();
+
+We'll return later to examine the rest of its logic, but for now we can summarise by saying it
+goes through the *resultSet* created by this query and adds each *resultSet* record's Id along with
+ a set of selected properties to a *results* array:
+
+That *results* array is then sent back to the browser via the *finished()* method.
+
+
+
+
 
 
 

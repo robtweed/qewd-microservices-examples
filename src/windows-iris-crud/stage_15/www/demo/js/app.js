@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     webComponents.addComponent('footer', footer_assembly());
     webComponents.addComponent('login_modal', login_modal_assembly(QEWD, webComponents));
     webComponents.addComponent('sidebar_menu', sidebar_menu_assembly());
-    webComponents.addComponent('topbar', topbar_assembly());
+    webComponents.addComponent('topbar', topbar_assembly(QEWD));
 
     let context = {
       paths: {

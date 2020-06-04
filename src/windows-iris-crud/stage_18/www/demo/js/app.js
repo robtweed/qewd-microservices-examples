@@ -7,6 +7,7 @@ import {sidebar_menu_assembly} from './sidebar-menu.js';
 import {topbar_assembly} from './topbar.js';
 import {logout_modal_assembly} from './logout-modal.js';
 import {crud_assembly} from '../../components/adminui/components/adminui-crud.js';
+import {personAssemblyState} from './personAssemblyState.js';
 
 document.addEventListener('DOMContentLoaded', function() {
   QEWD.on('ewd-registered', function() {
@@ -16,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     webComponents.addComponent('sidebar_menu', sidebar_menu_assembly());
     webComponents.addComponent('topbar', topbar_assembly(QEWD));
     webComponents.addComponent('logout_modal', logout_modal_assembly(QEWD));
-    webComponents.addComponent('person_page', crud_assembly(QEWD));
+    webComponents.addComponent('person_page', crud_assembly(QEWD, personAssemblyState));
     
     webComponents.register('person', webComponents.components.person_page);
 
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
         webComponents.loadGroup(components.sidebar_menu, root.sidebarTarget, context);
         webComponents.loadGroup(components.topbar, root.topbarTarget, context);
         webComponents.loadGroup(components.logout_modal, body, context);
+        webComponents.loadGroup(components.person_page, root.contentTarget, context);
       }
       
     });

@@ -1,0 +1,30 @@
+module.exports = function(messageObj, session, send, finished) {
+  if (!session.authenticated) {
+    return finished({error: 'Not authenticated'});
+  }
+
+  if (!messageObj.params) {
+    return finished({error: 'No params present in request'});
+  }
+   if (!messageObj.params.properties) {
+    return finished({error: 'No properties defined in request'});
+  }
+
+  let person = this.db.use('Person', 'by_id');
+  let results = [];
+  let properties = messageObj.params.properties;
+
+  person.forEachChild(function(id, record) {
+    let result = {};
+    result.id = id;
+    properties.forEach(function(property) {
+      if (property !== 'id') {
+        result[property] = record.$(property).value;
+      }
+    });
+    results.push(result);
+  });
+
+  finished({summary: results});
+
+};

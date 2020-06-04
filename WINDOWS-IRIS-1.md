@@ -528,6 +528,21 @@ eg your top-level folder structure should look like this:
 When it completes, you're ready to start QEWD
 
 
+## Starting the QEWD Orchestrator for the First Time
+
+Start the QEWD *Orchestrator* for the first time as follows:
+
+        cd \qewd-orchestrator
+        npm start
+
+The first time you start QEWD, it installs a bunch of extra things, so you'll see
+new sub-folders named *www* and *qewd-apps* appear. QEWD has loaded in everything you need
+for monitoring your system and for developing interactive applications if you wish to do so.
+
+After this initial installation has completed, QEWD will stop and ask you
+to restart.  See the instructions below:
+
+
 ## Starting the QEWD Orchestrator
 
 Each time you want to start QEWD, within your Windows Console session, 
@@ -568,11 +583,6 @@ file:
 
         starting microService connection to http://192.168.1.74:3001
         starting microService connection to http://192.168.1.74:3002
-
-
-The first time you start the *Orchestrator*, it installs a bunch of extra things, so you'll see
-new sub-folders named *www* and *qewd-apps* appear. QEWD has loaded in everything you need
-for monitoring your system and for developing interactive applications if you wish to do so.
 
 
 ## Optional: Try the QEWD-Monitor Application
@@ -958,6 +968,19 @@ Windows Console session and type:
         npm install
 
 
+## Starting the QEWD MicroService for the First Time
+
+Start the QEWD *login_service* MicroService for the first time as follows:
+
+        npm start
+
+The first time you start QEWD, it installs a bunch of extra things, so you'll see
+new sub-folders named *www* and *qewd-apps* appear. QEWD has loaded in everything you need
+for monitoring your system and for developing interactive applications if you wish to do so.
+
+After this initial installation has completed, QEWD will stop and ask you
+to restart.  See the instructions below:
+
 ### Start the MicroService
 
 A MicroService is started similarly to the *Orchestrator*, but we add the MicroService's
@@ -967,9 +990,7 @@ logical name after *npm start*, ie:
         npm start login_service
 
 
-As with the *Orchestrator*, the first time you start the MicroService, QEWD installs a
-bunch of additional stuff for you, such as the *qewd-monitor* application.  It will then start and
-you should see:
+QEWD will start and you should see:
 
 
         ========================================================
@@ -1995,14 +2016,27 @@ Windows Console session and type:
         npm install
 
 
+## Starting the QEWD MicroService for the First Time
+
+Start the QEWD *info_service* MicroService for the first time as follows:
+
+        npm start
+
+The first time you start QEWD, it installs a bunch of extra things, so you'll see
+new sub-folders named *www* and *qewd-apps* appear. QEWD has loaded in everything you need
+for monitoring your system and for developing interactive applications if you wish to do so.
+
+After this initial installation has completed, QEWD will stop and ask you
+to restart.  See the instructions below:
+
+
 ### Start the MicroService
 
 
         npm start info_service
 
 
-As with the *Orchestrator*, the first time you start the MicroService, QEWD installs a
-bunch of additional stuff for you, such as the *qewd-monitor* application.  It will then start and,
+QEWD will start and,
 just as you saw for the *login_service* MicroService,
 you should see the *info_service* MicroService being connected to by the *Orchestrator*.
 
