@@ -4,6 +4,7 @@
 
 - [Introduction](#introduction)
 - [Initial Steps](#initial-steps)
+- [Set up your QEWD System](#set-up-your-qewd-system)
 
 ----
 
@@ -432,7 +433,7 @@ This tutorial will show you how to build out the application in a series of incr
 ----
 
 
-#Stage 1: Loading and Rendering the Admin UI Framework
+# Stage 1: Loading and Rendering the Admin UI Framework
 
 
 ## Decide on a name for your application
