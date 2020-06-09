@@ -5,6 +5,26 @@
 - [Introduction](#introduction)
 - [Initial Steps](#initial-steps)
 - [Set up your QEWD System](#set-up-your-qewd-system)
+- [Stage 1: Loading and Rendering the Admin UI Framework](#stage-1-loading-and-rendering-the-admin-ui-framework)
+- [Stage 2: Adding the QEWD Client Module](#stage-2-adding-the-qewd-client-module)
+- [Stage 3: Adding a Login Sequence](#stage-3-adding-a-login-sequence)
+- [Stage 4: Add a Footer](#stage-4-add-a-footer)
+- [Stage 5: Add the Login Modal Panel](#stage-5-add-the-login-modal-panel)
+- [Stage 6: Displaying the Login Modal Panel](#stage-6-displaying-the-login-modal-panel)
+- [Stage 7: Add the Login Form to the Modal Panel](#stage-7-add-the-login-form-to-the-modal-panel)
+- [Stage 8: Clicking the Login Button via the Enter Key](#stage-8-clicking-the-login-button-via-the-enter-key)
+- [Stage 9: Integrating with the QEWD Back-end](#stage-9-integrating-with-the-qewd-back-end)
+- [Stage 10: Adding the QEWD Back-end Login Handler Module](#stage-10-adding-the-qewd-back-end-login-handler-module)
+- [Stage 11: Updating the UI Panels After Successful Login](#stage-11-updating-the-ui-panels-after-successful-login)
+- [Stage 12: Updating the Sidebar after Login](#stage-12-updating-the-sidebar-after-login)
+- [Stage 13: Update the topbar with a Greeting after Login](#stage-13-update-the-topbar-with-a-greeting-after-login)
+- [Stage 14: Personalise the Greeting](#stage-14-personalise-the-greeting)
+- [Stage 15: Making the Admin UI Truly Responsive](#stage-15-making-the-admin-ui-truly-responsive)
+- [Stage 16: Add a Logout Menu Option](#stage-16-add-a-logout-menu-option)
+- [Stage 17: The CRUD Assembly](#stage-17-the-crud-assembly)
+- [Stage 18: Customising the CRUD Page](#stage-18-customising-the-crud-page)
+- [Stage 19: Customising the Summary Card](#stage-19-customising-the-summary-card)
+- [Stage 20: Creating a Person Record](#stage-20-creating-a-person-record)
 
 ----
 
@@ -370,7 +390,7 @@ QEWD back-end
 as re-usable building blocks, allowing you to fully customise its behaviour.
 
 
-## The *mg-webComponents Framework
+## The *mg-webComponents* Framework
 
 We'll be making use of the *mg-webComponents* framework.  Although it's not essential for the
 purposes of this tutorial, [click here](https://github.com/robtweed/mg-webComponents) 
@@ -2819,7 +2839,7 @@ and then returning an OK response:
 Save the *index.js* file and use the *qewd-monitor-adminui* application to stop all the Worker Processes.
 
 
-## try it Out
+## Try it Out
 
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_16) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
