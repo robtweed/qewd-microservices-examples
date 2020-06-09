@@ -1,4 +1,4 @@
-let cclass = require('mg-dbx').mclass;
+let mclass = require('mg-dbx').mclass;
 
 module.exports = function(messageObj, session, send, finished) {
 
@@ -31,8 +31,7 @@ module.exports = function(messageObj, session, send, finished) {
     Instantiate a new Person instance
   */
 
-  //let person = db.classmethod('User.Person', '%New');
-  let person = new cclass(db, 'User.Person', '%New');
+  let person = new mclass(db, 'User.Person', '%New');
 
   /*
     mg-dbx allows us to set properties using the setproperty method

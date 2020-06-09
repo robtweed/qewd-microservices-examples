@@ -28,6 +28,7 @@ ideal basis for many applications.
 Pre-built versions of the files used and referred to in this example can be found in the
 [*/src/windows-iris-2*](./src/windows-iris-2) folder within this repo.
 
+----
 
 # Initial Steps
 
@@ -56,6 +57,7 @@ You first need to [install Node.js](https://nodejs.org) on your Windows machine(
 Do not install earlier versions of Node.js, and if you already have an earlier version of Node.js
 installed, you will need to update it.
 
+----
 
 # Set up your QEWD System
 
@@ -289,10 +291,9 @@ After this initial installation has completed, QEWD will stop and ask you
 to restart.  See the instructions below:
 
 
-## Starting QEWD
+## Re-starting QEWD
 
-Each time you want to start QEWD, within your Windows Console session, 
-first make sure you're in your QEWD Installation folder, eg
+Each time you subsequently want to start QEWD, first make sure you're in your QEWD Installation folder, eg
 
         cd \qewd
 
@@ -339,16 +340,11 @@ If the *qewd-monitor* application works correctly, then you can be sure that the
 is working correctly and is ready for use.
 
 
-# Start Developing
-
-Everything is now ready for you to begin developing the example application!
-
-
 ## The QEWD Interactive Application Development Environment
 
-After starting QEWD for the first time, it's automatically installed and configured everything you'll need to begin
-developing the example application described in this tutorial.  You'll find most of it in the *www* directory that
-will have been created.  Look for the following:
+After QEWD started for the first time, it had automatically installed and configured everything you'll need to begin
+developing the example application described in this tutorial.  You'll find most of what's needed
+ in the *www* directory that QEWD created for you.  Look for the following:
 
         C:\qewd
             |
@@ -426,10 +422,20 @@ The folder structure I'd recommend you use for applications is as follows:
                             |- your Assembly Modules
 
 
-With these in mind, let's start developing!
+
+## You're Ready to Start Developing
+
+Everything is now ready for you to begin developing the example application!
+
+This tutorial will show you how to build out the application in a series of incremental stages, so let's begin
+
+----
 
 
-## Step 1: Decide on a name for your application
+#Stage 1: Loading and Rendering the Admin UI Framework
+
+
+## Decide on a name for your application
 
 I'm going to call this application *demo*, but you can use any name you like.
 
@@ -444,7 +450,7 @@ Create the appropriately-named folder under your QEWD WebServer Root Directory, 
 
 
 
-## Step 2: Create the HTML Loader Page
+## Create the HTML Loader Page
 
 Within the application folder you created in the step above, create a text file named *index.html* and
 paste the following content into it:
@@ -469,7 +475,7 @@ As you can see, what this means is that all the work will be done by an Es6 modu
 We refer to this as the *Load/Render Module*.
 
 
-## Step 3: Create the Load/Render Module
+## Create the Load/Render Module
 
 First, create a sub-folder named *js* below your application folder, eg in my case:
 
@@ -507,11 +513,11 @@ Within this *js* folder, create a text file named *app.js* and paste the followi
 
 Save this file.
 
+
+## Try out the application.
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_1) to confirm what your application's folder layout and files should look like at
 this stage of this tutorial.
-
-
-## Step 4: Try out the application.
 
 The *mg-webComponents* framework makes use of ES6 modules that can be dynamically-loaded direct from
 the QEWD WebServer, so there's no bundling/compilation step.  As soon as you create or amend your
@@ -536,8 +542,11 @@ SB Admin 2 Theme User Interface (UI), albeit with nothing showing in the panels:
 Each of the 4 panels in the UI are referred to by the names shown in the diagram above.  In the rest 
 of this tutorial, we'll basically be defining what will be displayed in each of the panels.
 
-But first, let's do a step-by-step study into the logic you pasted into the *app.js* file and how and
-why the UI appeared.
+
+## How It All Works
+
+But first, let's do a step-by-step study into the logic you pasted into the *app.js* file and 
+discover how and why the UI appeared.
 
 - the process is kicked off by the *index.html* file which is what you actually asked the browser to load
 
@@ -584,7 +593,65 @@ all the required resources.  You should also see the *adminui-root* custom tag, 
 you'll see the Bootstrap 4 markup that renders the four UI panels.
 
 
-## Step 5: Add a Login Sequence
+----
+
+# Stage 2: Adding the QEWD Client Module
+
+## Background
+
+Our application will need to communicate with the QEWD back-end.  The
+ [QEWD Client ES6 Module](https://github.com/robtweed/qewd-client) handles all that for you,
+so we should load that into our front-end logic.
+
+
+## Loading the QEWD-Client Module
+
+Edit the *app.js* file.
+
+Add this line at the top of your *app.js* file:
+
+        import {QEWD} from '../../qewd-client.js';
+
+This will import the ES6 module named *qewd-client.js* from the QEWD WebServer's root path.
+
+At the end of the *DOMContentLoaded* callback, add this to start the QEWD client connection:
+
+        QEWD.start({
+          application: 'demo',
+        });
+
+The *application* value must match the name you've chosen for your application.
+
+Next, move the rest of the logic that was within the *DOMContentLoaded* callback into a new, additional
+callback which triggers when the QEWD WebSocket connection is established and ready for use:
+
+
+        QEWD.on('ewd-registered', function() {
+          // perform the application logic here
+        });
+
+
+## Try it Out
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_2) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+
+
+You can test this change by clicking your browser's reload button.  Provided you haven't introduced any
+JavaScript syntax errors into the *app.js* module, you should see no change in the rendered content.  However, 
+if you open the browser's Developer Tools and look at the JavaScript console, you should see this:
+
+        demo registered
+
+You'll also see some activity in your QEW back-end console log, showing an exchange of messages between
+your browser and the QEWD back-end.
+
+
+----
+
+# Stage 3: Adding a Login Sequence
+
+## The Approach
 
 Before a user is allowed to manipulate the Person record on your Cach&eacute;/IRIS server, you'll
 probably want to authenticate them using a username/password challenge.  So let's first build out that
@@ -603,47 +670,10 @@ application name, so the user knows he/she has loaded the correct application.
 We'll also populate the UI's *footer* panel with a copyright notice, but for now we'll leave the *topbar*
 and *content area* empty.
 
-### Step 5a: Load the QEWD-Client Module
-
-So the first thing we need to do is to edit the *app.js* file.
-
-In order to communicate with the QEWD back end, first add this line at the top of your *app.js* file:
-
-        import {QEWD} from '../../qewd-client.js';
-
-This will import the ES6 module named *qewd-client.js* from the QEWD WebServer's root path.
-
-At the end of the *DOMContentLoaded* callback, add this to start the QEWD client connection:
-
-        QEWD.start({
-          application: 'demo',
-        });
-
-and move the rest of the logic that was within the *DOMContentLoaded* callback within a new, additional
-callback which triggers when the QEWD WebSocket connection is established and ready for use:
+We'll build up this functionality in the next few stages.
 
 
-        QEWD.on('ewd-registered', function() {
-          // perform the application logic here
-        });
-
-To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_2) 
-to confirm what your application's folder layout and files should look like at this stage of this tutorial.
-
-
-We'll see how the QEWD Client is used for logging in later. 
-
-You can test this change by clicking your browser's reload button.  Provided you haven't introduced any
-JavaScript syntax errors into the *app.js* module, you should see no change in the rendered content.  However, 
-if you open the browser's Developer Tools and look at the JavaScript console, you should see this:
-
-        demo registered
-
-You'll also see some activity in your QEW back-end console log, showing an exchange of messages between
-your browser and the QEWD back-end.
-
-
-### Step 5b: Define the initial sidebar Assembly Module
+## Define the initial sidebar Assembly Module
 
 We describe the content of the various UI Panels by defining what are known in *mg-webComponents* parlance as
 *Assembly Modules*.  These describe two things:
@@ -680,7 +710,7 @@ display a title and icon.  Bootstrap 4 uses the *Font Awesome* library which you
 You'll notice that the Assembly Module actually exports a function: you'll see how that is applied in the next step.
 
 
-### Step 5c: Import the initial sidebar Assembly Module into the *app.js* Module
+## Import the initial sidebar Assembly Module into the *app.js* Module
 
 
 Near the top of the *app.js* file, we now import the *initial-sidebar* Assembly Module:
@@ -688,7 +718,7 @@ Near the top of the *app.js* file, we now import the *initial-sidebar* Assembly 
         import {initial_sidebar_assembly} from './initial-sidebar.js';
 
 
-### Step 5d: Load/Register the initial sidebar Assembly Module
+## Load/Register the initial sidebar Assembly Module
 
 
 Next, within your *app.js* file, within the *DOMContentLoaded* callback, we load and register 
@@ -699,7 +729,7 @@ the *initial-sidebar* Assembly Module using the *mg-webComponents* *addComponent
 Note that we've now assigned a name - *initial_sidebar* - to it.  So it will now be accessible
 via *webComponents.components.initial_sidebar*.
 
-### Step 5e: Render the initial sidebar
+## Render the initial sidebar
 
 To render the initial sidebar, we need to edit this line:
 
@@ -723,6 +753,8 @@ will fire when the *adminui-root* is rendered and ready for use
 - the target into which the initial sidebar Assembly markup is added is accessed via the *adminui-root* WebComponent's
 *sidebarTarget* property (*root.sidebarTarget*)
 
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_3) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
@@ -732,10 +764,14 @@ Test out your changes so far by clicking your browser's reload button
 The UI should load its four panels as before, but now you should see the *Person Editor* title and an icon at
 the top of the *sidebar* panel.
 
+----
 
-### Step 5f: Add a *footer*
+# Stage 4: Add a Footer
 
-The steps for this are similar to those above for the sidebar:
+
+## Add the Footer Assembly
+
+The steps for this are similar to those above for the *sidebar*:
 
 - first create a text file named *footer.js* within your application's *js* folder
 
@@ -770,15 +806,22 @@ This WebComponent is specifically designed for displaying a copyright notice in 
 
         webComponents.loadGroup(webComponents.components.footer, root.footerTarget, context);
 
+
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_4) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
-
-Try these changes out by clicking your browser's *reload* button.  You should now see the
+Try the Stage 4 changes out by clicking your browser's *reload* button.  You should now see the
 copyright message appearing in the UI's footer panel!
 
 
-### Step 5g: Add the Login Modal Panel
+----
+
+# Stage 5: Add the Login Modal Panel
+
+
+## Background
 
 We're now ready to add the logic that will display a modal login panel.
 
@@ -789,7 +832,8 @@ This is a little bit trickier as it requires two steps:
 
 Let's start with the first step, which follows a similar pattern to what we've done previously.
 
-#### Create the *login-modal* Assembly module
+
+## Create the *login-modal* Assembly module
 
 We'll start with just the basic "bare-bones" superstructure of a modal panel that we'll build up later into a login form.
 
@@ -843,9 +887,9 @@ we'll just set some text into it (adminui-modal-footer);
 So let's initially use the bare-bones modal panel and see how we get on.
 
 
-#### Hook the *modal-login* Assembly into your *app.js* Module
+## Hook the *modal-login* Assembly into your *app.js* Module
 
-Just follow the same pattern as we used for the other panel Assembly modules:
+Follow the same pattern that we used for the other panel Assembly modules:
 
 - In your *app.js* file:
 
@@ -861,6 +905,9 @@ Just follow the same pattern as we used for the other panel Assembly modules:
 
         webComponents.loadGroup(webComponents.components.login_modal, body, context);
 
+
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_5) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
@@ -873,7 +920,11 @@ has been added into the *body*.
 So the modal is there, but just not visible.
 
 
-#### Bringing the Modal Login Panel into View
+----
+
+# Stage 6: Displaying the Login Modal Panel
+
+## Background
 
 This is a bit more tricky behind the scenes than might appear.  Whilst everything in the initial view
 is loading and rendering, it's also loading the various JavaScript libraries that are used by the
@@ -883,6 +934,8 @@ modal panel's *show()* method can be invoked.
 For this reason, the *adminui-root* WebComponent has been written such that it will fire an event to signal that 
 everything is ready and loaded.  The trick is therefore to
 hook into and use that event to bring the modal login panel into view, because then it will be safe to do so.
+
+## Define the Event and its Handler
 
 Here's how it's done, all from within your *app.js* Module.
 
@@ -924,6 +977,9 @@ Note that we are locating an instance of the *admin-modal-root* WebComponent tha
             },
             ...etc
 
+
+## try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_6) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
@@ -932,8 +988,12 @@ Click the browser's *refresh* button and see what happens this time.
 This time, the *bare-bones* modal panel should appear automatically, with the UI's main panels
 greyed out in the background.
 
+----
 
-#### Add the Login Form and its Input Fields
+# Stage 7: Add the Login Form to the Modal Panel
+
+
+## Add the Login Form and its Input Fields
 
 Now we have the modal panel in place and coming into view at the right time, we can modify its 
 contents and add a form with the *username* and *password* input fields.
@@ -988,7 +1048,7 @@ Save the file and click the browser's *refresh* button.  You should now see the 
 the *username* and *password* fields.
 
 
-#### Add the Login Button
+## Add the Login Button
 
 The next step is to replace that placeholder text in the modal panel's *adminui-modal-footer* Web Component
 with a Login button.
@@ -1020,11 +1080,13 @@ with this:
         }
 
 
+## Try it Out
+
 Save the file and click the browser's *refresh* button.  You should now see the button in the modal panel's footer.
 So in terms of markup we now have everything we need.
 
 
-#### Enabling the Login Button
+## Enabling the Login Button
 
 Visually everything looks good now, but you'll find that clicking the *Login* button doesn't actually do anything.
 
@@ -1102,9 +1164,11 @@ to this:
 
         return {component, hooks};
 
+
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_7) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
-
 
 Try this updated version of the application by clicking the browser's *refresh* button.
 
@@ -1112,12 +1176,20 @@ You should now see *button was clicked!* in the browser's JavaScript console whe
 *Login* button.
 
 
-#### Optional: Clicking the Login Button via the *Enter* Key
+----
+
+# Stage 8: Clicking the Login Button via the *Enter* Key
+
+## Background
 
 Something that can be very useful to enable in a login form like this is to cause the *Login* button
 to be implicitly clicked if the user presses the *Enter* Key.
 
-It's pretty simple to enable by adding another (albeit a little more complex) handler within the *hook* method:
+
+## Modify the Modal Root Component
+
+This behaviour is actually pretty simple to enable by adding another
+ (albeit a little more complex) handler within the *hook* method:
 
         let modal = this.getParentComponent('adminui-modal-root');
         let _this = this;
@@ -1136,7 +1208,7 @@ This event handler is actually added to the *adminui-modal-root* Component: it w
 specifically filter out the *Enter* key.
 
 So we first get a pointer to the *adminui-modal-root* Component.  Within this specific *hook* method, the
-context is the *adminui-button* Component which is within the *adminui-modal-footer* Component.  So the easiest
+context is the *adminui-button* Component which is within the *adminui-modal-footer* Component.  The easiest
 and most efficient way to access the *adminui-modal-root* Component is to go up the DOM hierarchy from the
 current *adminui-button* Component until we reach the *adminui-modal-root* Component.  That is what this line
 is doing:
@@ -1171,19 +1243,25 @@ and the actual event handler function is as follows:
           }
         };
 
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_8) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
-
-Once again, save the file and click the browser's *refresh* button to try out this change.
+Once again, click the browser's *refresh* button to try out this change.
 
 When the modal panel appears, try clicking the *Enter* key.  You should see *button was clicked!* appear
 in the browser's JavaScript console.
 
 
-#### Getting the *username* and *password* to the QEWD Back-end
+----
 
-Now that we have the *Login* button's *click* event handler working nicely, we now need
+# Stage 9: Integrating with the QEWD Back-end
+
+
+## Getting the *username* and *password* to the QEWD Back-end
+
+Now that we have the *Login* button's *click* event handler working nicely, we next need
 to hook it up to the QEWD back-end where the user authentication/validation will take place.
 
 We'll make use of the *qewd-client*'s *reply()* method.
@@ -1291,11 +1369,17 @@ recurses down through all any child/grandchild etc sub-components and cleanly re
             modal.remove();
           }
 
-To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_9) 
+
+## Try it Out
+
+There were quite a few changes made in this Stage 9, so to summarise, 
+[see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_9) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
-Time to try these changes out again.  Click the browser *refresh* button.  This time, try
-entering something into the username and password fields and click the button.  You should
+Then try these changes out.  Click the browser *refresh* button.  
+
+This time, when the modal login panel appears, try
+entering something into the username and password fields and click the *Login* button.  You should
 see the *toastr* library bring up a red error message in the top-right corner of the display,
 saying *Unable to load handler module for: demo*.
 
@@ -1327,7 +1411,11 @@ it couldn't find a message handler module for our *demo* application's *login* m
 That's because we haven't yet written one, so it's hardly surprising!
 
 
-#### Adding the QEWD Back-end Login Handler Module 
+----
+
+# Stage 10: Adding the QEWD Back-end Login Handler Module
+
+## The *qewd-apps* Folder
 
 So we'll now move our attention to the QEWD back-end, and write the first handler, in this
 case to authenticate/validate the *username* and *password* credentials.
@@ -1387,6 +1475,8 @@ So, as you can see:
 - under each message-type sub-folder is a file named *index.js* which is a module containing the actual hander logic 
 
 
+## Create a *qewd-apps* Folder for the *demo* Application
+
 In our case, we've named the application *demo*.  If you remember, we did that in the *app.js* file here:
 
           QEWD.start({
@@ -1426,6 +1516,9 @@ structure:
                                |- index.js
 
 
+
+## Add the QEWD Back-end Login Handler Logic
+
 Paste the following content into *index.js*:
 
 
@@ -1462,9 +1555,11 @@ Paste the following content into *index.js*:
         };
 
 
+## How the Login Handler Works
+
 Let me explain what's happening here.
 
-##### Message Handler Module Signature
+### Message Handler Module Signature
 
 All message handler modules for interactive QEWD applications have the same outer signature:
 
@@ -1490,7 +1585,7 @@ browser, even if processing has not yet completed
 handler method can be returned to the available pool so that it can be re-used for another queued incoming message.
 
 
-##### What our *login* handler module wll be doing
+### What our *login* handler module wll be doing
 
 For the purposes of this example, we'e going to use a simple, hard-coded authentication mechanism, 
 whereby the username must be *rob* and the password must be *secret*.
@@ -1510,7 +1605,7 @@ If the username and password are valid, we'll:
 - return a simple *{ok: true}* response to denote successful login.
 
 
-##### How that functionality is implemented
+### How that functionality is implemented
 
 We're expecting the *login* message to have been sent using:
 
@@ -1584,11 +1679,15 @@ And finally we signal that we're finished processing and return a simple object 
           finished({ok: true});
 
 
-To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_10) 
+## Try it Out
+
+### Check Your Code Changes
+
+[See here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_10) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 
-#### Restart QEWD to Load the new *qewd-apps* Handlers
+### Restart QEWD to Load the new *qewd-apps* Handlers
 
 Whenever you first add a new application sub-folder to the *qewd-apps* folder, you **must** restart
 QEWD in order to register it.  This is a one-off step for each application you add.
@@ -1599,6 +1698,8 @@ Then start it up again:
 
         npm start
 
+
+### Try Logging In
 
 In your browser, reload the page by clicking the *refresh* button.
 
@@ -1634,9 +1735,15 @@ that were added to them.
 If you check in the browser's Developer Tools Elements view, you'll no longer see the modal panel Components.
 
 
-#### Updating the UI Panels After Successful Login
+----
 
-Let's summarise what we next need to achieve: now that the user has successfully logged in, we want to
+# Stage 11: Updating the UI Panels After Successful Login
+
+## Background
+
+Let's summarise what we next need to achieve: 
+
+Now that the user has successfully logged in, we want to
 give them access to all the options our application is designed to give them.  In our example, it will
 actually just be two things:
 
@@ -1645,7 +1752,7 @@ actually just be two things:
 
 In practice this will mean:
 
-- repopulating the *sidebar* menu with two options:
+- populating the *sidebar* menu with two new options:
 
   - maintain the Person record
   - log out
@@ -1664,7 +1771,7 @@ There will be quite a lot of different things to put together for this step, so,
 whole thing at once, I'll build it up bit by bit, and try to explain the ideas.
 
 
-##### How and Where to Trigger this Step
+## How and Where to Trigger this Step
 
 The first question is how and where this UI updating process will be triggered?
 
@@ -1685,7 +1792,7 @@ specifically the button's *click* handler:
                 };
                 this.addHandler(fn);
 
-So, if you remember, if we don't get an error back from the QEWD *login* message handler, it must
+If you remember, assuming we don't get an error back from the QEWD *login* message handler, it must
 mean the user has successfully logged in, so we removed the modal login panel:
 
                   if (!responseObj.message.error) {
@@ -1741,7 +1848,10 @@ Again, there's a couple of ways this could be done, but the simplest is to make 
 object, since that is something that is always automatically made available to every WebComponent 
 within your Assembly Modules.
 
-So, my approach would be to modify the *Login* button's *hook* method as follows:
+
+## Harnessing the *context* Object
+
+My suggested approach is to modify the *Login* button's *hook* method as follows:
 
                   if (!responseObj.message.error) {
                     let modal = _this.getComponentByName('adminui-modal-root', 'modal-login');
@@ -1750,7 +1860,7 @@ So, my approach would be to modify the *Login* button's *hook* method as follows
                     _this.context.loadMainView();    <====== *****
                   }
 
-And to make this work, we'll need to define this *loadMainView()* function in the *app.js* Module and add it to the
+To make this work, we'll need to define this *loadMainView()* function in the *app.js* Module and add it to the
 *context* object.
 
 Where in the *app.js* Module you define this function is up to you, but again, my preference would be
@@ -1800,6 +1910,9 @@ to load the new *sidebar_menu* Assembly (which is described in the next section 
 So, by defining the *loadMainView* function here, we're able to make use of the closure around
 the *components*, *body*, *root* and *context* objects needed by the *loadGroup()* API.
 
+
+## Initial Test of the Approach
+
 Let's test that this is going to work before going to the next step.  To do that, make a temporary
 edit to the *loadMainView()* function:
 
@@ -1812,6 +1925,8 @@ In other words, we'll temporarily comment out the *loadGroup()* API since we hav
 the *sidebar_menu* Assembly, but we'll just confirm that the *Login* button's *hook* method 
 correctly invokes it.
 
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_11) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
@@ -1819,12 +1934,24 @@ Click the browser's *refresh* button and, after logging in with the correct *use
 you should see the modal panel disappear, and in the browser's JavaScript console you should see
 our *console.log* message appear: *UI will now be updated...*.
 
-So now we know this will work, remove the *console.log* command and the comment from the *loadGroup()* API.
+----
+
+# Stage 12: Updating the Sidebar after Login
+
+
+## Remove the Test Comment
+
+So now we know this approach will work, remove the *console.log* command and the comment from the *loadGroup()* 
+API, ie the *loadMainView()* function should now look like this:
+
+              context.loadMainView = function() {
+                webComponents.loadGroup(components.sidebar_menu, root.sidebarTarget, context);
+              }
 
 We're now ready to define the *sidebar* menu.
 
 
-##### Create the New *sidebar* Menu Contents
+## Create the New *sidebar* Menu Contents
 
 Initially, during login, we just displayed a title at the top of the
 *sidebar*.  We're now going to append a further Assembly to the *sidebar*, containing the menu for a logged-in
@@ -1871,9 +1998,9 @@ property which, in the example above, is going to load an Assembly named *person
 actively-selected option.  We do that by specifying *active: true*
 
 
-##### Load the Sidebar Menu Assembly:
+## Load the Sidebar Menu Assembly:
 
-So now make the following changes to your *app.js* file:
+Now make the following changes to your *app.js* file:
 
 Near the top, import the Sidebar Menu Assembly Module:
 
@@ -1886,10 +2013,12 @@ Then load/register it:
 It will now be available when the *loadMainView()* function loads it into the UI.
 
 
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_12) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
-Try out this latest by clicking your browser's *refresh* button.
+Try out this latest set of changes by clicking your browser's *refresh* button.
 
 This time, after successfully logging in, not only should you see the modal panel disappear, but the new 
 *Person Editor* menu item should now appear in the *sidebar*.
@@ -1898,7 +2027,20 @@ Clicking on the menu option won't do anything, but you'll also see that it doesn
 we've not yet defined the *person* Content Page.
 
 
-##### Update the *topbar* with a Greeting
+----
+
+# Stage 13: Update the *topbar* with a Greeting after Login
+
+## Background
+
+A nice feature to add to an application is a greeting message when a user successfully logs in.
+
+A good place to display such a message in the Admin UI is the *topbar*.
+
+So let's build out and add this functionality, once again doing so in small incremental steps.
+
+
+## Create a *topbar* Assembly
 
 Within your application's *js* folder, create a new text file named *topbar.js*.  Paste the following content into it:
 
@@ -1915,6 +2057,9 @@ Within your application's *js* folder, create a new text file named *topbar.js*.
         };
 
 The *adminui-topbar-text* Web Component is designed to display text in the UI's *topbar* panel.
+
+
+## Load the Assembly into your *app.js* Loader Module
 
 The next steps should be beginning to become familiar.  In your *app.js* module:
 
@@ -1934,13 +2079,18 @@ and finally, load it within the *loadMainView()* function:
                 webComponents.loadGroup(components.topbar, root.topbarTarget, context);
               }
 
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_13) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 Try out this version in your browser: you should now see the welcome text in the *topbar*.
 
+----
 
-##### Displaying a Personalised Greeting
+# Stage 14: Personalise the Greeting
+
+## Background
 
 Of course, what we've displayed is static text.  If, instead, you wanted to display a personalised greeting,
 eg: *Welcome to the Person Editor, Rob*, how could that be done?
@@ -1949,7 +2099,10 @@ Well, of course, for this to be possible, the back-end user authentication syste
 available to it some kind of greeting name property associated with each username, and this would have
 to be retrieved in order to display it in the *topbar* text.
 
-Let's hard-code a version to show how it could be done.
+Let's hard-code a version to show the principles of how such a feather could be implemented.
+
+
+## Modify the QEWD Back-end *Login* Handler Module
 
 Return to the QEWD back-end *login* handler module you created earlier.  If you remember, this was in
 the *C:\qewd\qewd-apps\demo\login\index.js* file and looked like this:
@@ -2006,6 +2159,8 @@ Of course, in a real-world application, that name would have been fetched from t
 However, you'd still put it into the user's QEWD Session.  You'll see why in a minute.
 
 
+## Modify your *topbar* Assembly
+
 The next step is to edit the *topbar.js* Assembly Module.  Instead of defining a static piece of text, we'll
 add a *hook* method that fetches the greeting text using a QEWD WebSocket message.
 
@@ -2038,7 +2193,7 @@ Replace the contents of your *topbar.js* Module file with this:
         };
 
         
-Let me highlight the changes:
+Let me explain the changes:
 
 - the first line has been changed to make the *qewd-client* APIs available to the Assembly Module:
 
@@ -2084,6 +2239,9 @@ and uses its response to dynamically set the *text* state property of the Compon
                   });
 
 
+## Amend How the *topbar* is loaded in your *app.js* Module
+
+
 You'll also need to amend the *app.js* file and pass the *QEWD* object to the *topbar* Assembly
 when registering it.  So edit this line:
 
@@ -2095,8 +2253,14 @@ and change it to:
 
 
 
-So that's the front-end functionality in place.  Now let's write the QEWD back-end message handler
-method for that *getGreeting* message.
+So that's the front-end functionality in place.  
+
+
+## Create the QEWD Back-end *getGreeting* Handler
+
+
+Now let's write the QEWD back-end message handler method for that *getGreeting* message that
+the *topbar* Assembly's *hook* method sends.
 
 Create a new path for it:
 
@@ -2137,11 +2301,14 @@ we set in the *login* handler.
 
 Save the *index.js* file.
 
+
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_14) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
 
-##### IMPORTANT: Stop all QEWD Worker Processes
+### IMPORTANT: Stop all QEWD Worker Processes
 
 If you were to try out the application at this point, you'd find that an error would be reported
 when it tries to send the *getGreeting* message.  That's because the Worker Processes that actually
@@ -2162,9 +2329,11 @@ development for this purpose.
 automatically appear: that's OK, just ignore that one, and at this point you're ready to re-try the
 *demo* application.
 
-##### Try out the *demo* Application
+### Try out the *demo* Application
 
-Login and you should now see the message appear in the *topbar*:
+Having stopped all the QEWD Worker processes, you can now try out the most recent changes.
+
+Click the browser's *refresh* button.  Login and you should now see the message appear in the *topbar*:
 
         Welcome to the Person Editor, Rob
 
@@ -2173,15 +2342,22 @@ was used for that message text, eg:
 
         received: {"type":"getGreeting","finished":true,"message":{"greetingName":"Rob"},"responseTime":"10ms"}
 
+----
 
-##### Making the UI Truly Responsive
+# Stage 15: Making the Admin UI Truly Responsive
+
+
+## Background
 
 There's two more small additions we can now make to the *sidebar* and the *topbar* to make the UI really 
-responsive and behave nicely within the small area available in a mobile device.
+responsive and behave nicely even within the small area available in a mobile device.
 
 We do this by adding special *toggler* WebComponents.
 
-First, change the *sidebar_menu.js* Assembly Module as follows:
+
+## Modify the *sidebar_menu* Assembly
+
+First, change your *sidebar_menu.js* Assembly Module as follows:
 
         export function sidebar_menu_assembly() {
 
@@ -2213,8 +2389,13 @@ First, change the *sidebar_menu.js* Assembly Module as follows:
 
         };
 
+You'll see that we've added, to the bottom of the *sidebar_menu* Assembly a divider and also
+a WebComponent named *adminui-sidebar-toggler*.
 
-And then change the *topbar.js* Assembly Module to this:
+
+## Modify the *topbar* Assembly
+
+Next, change the *topbar.js* Assembly Module to this:
 
         export function topbar_assembly(QEWD) {
           let component = [
@@ -2246,6 +2427,11 @@ And then change the *topbar.js* Assembly Module to this:
         };
 
 
+You'll see that we've added a special WebComponent named *adminui-topbar-toggler*.
+
+
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_15) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
@@ -2259,13 +2445,17 @@ that collapses the menu into a "hamburger" menu widget.
 It's always a good idea to add both these WebComponents to any of your applications' *sidebar* and *topbar* Assemblies.
 
 
-##### Add a Logout Menu Option
+----
+
+# Stage 16: Add a Logout Menu Option
+
+## Background
 
 Let's now add another option to the *sidebar* menu, allowing the user to log out and terminate their
 QEWD Session.  
 
 The way this will work is that, when the *logout* menu option is clicked, a modal panel will appear, asking
-the user to confirm that they really do want to logout: in case the option was clicked by accident.
+the user to confirm that they really do want to logout (eg in case the option was clicked by accident).
 
 The modal confirmation panel will allow the user to:
 
@@ -2273,7 +2463,10 @@ The modal confirmation panel will allow the user to:
 
 - *accept*: in which case the user is logged out and returned to the login sequence
 
-So, first, edit the *sidebar_menu.js* Assembly Module as follows:
+
+## Modify the *sidebar_menu* Assembly
+
+First, edit the *sidebar_menu.js* Assembly Module as follows:
 
         export function sidebar_menu_assembly() {
 
@@ -2335,6 +2528,8 @@ property of *modal-logout* should be brought into play when the option is clicke
 
                 use_modal: 'logout-modal'
 
+
+## Create the Modal Logout Assembly
 
 The next step is to create the modal logout Assembly Module.  In your application's *js* 
 folder, create a file named *logout_modal.js*.  Paste the following content into it:
@@ -2408,7 +2603,11 @@ folder, create a file named *logout_modal.js*.  Paste the following content into
           return {component, hooks};
         };
 
-Let's go through this and see what it's going to do.
+
+## Understanding the Modal Logout Assembly
+
+OK, so there's quite a bit going on in this Assembly. Let's go through it
+ and see what it's going to do and why.
 
 It's another instance of an *adminui* modal panel with a header, body and footer, just as we saw in
 the *login-modal* Assembly.
@@ -2420,7 +2619,7 @@ There's a few differences though:
           let component = {
             componentName: 'adminui-modal-root',
             state: {
-              name: 'logout-modal'
+              name: 'logout-modal'   <======= *******
             },
 
   This matches the name we specified earlier in the *sidebar* nav menu item, ie:
@@ -2430,7 +2629,7 @@ There's a few differences though:
               state: {
                 title: 'Logout',
                 icon: 'power-off',
-                use_modal: 'logout-modal'
+                use_modal: 'logout-modal'  <====== *******
               }
             },
 
@@ -2444,7 +2643,7 @@ There's a few differences though:
                 },
                 children: [
                   {
-                    componentName: 'adminui-modal-close-button',
+                    componentName: 'adminui-modal-close-button',  <====== ******
                   }
                 ]
               },
@@ -2455,7 +2654,7 @@ There's a few differences though:
               {
                 componentName: 'adminui-modal-body',
                 state: {
-                  text: 'Are you sure you want to logout?'
+                  text: 'Are you sure you want to logout?'   <===== *****
                 }
               },
 
@@ -2466,10 +2665,10 @@ There's a few differences though:
                 componentName: 'adminui-modal-footer',
                 children: [
                   {
-                    componentName: 'adminui-modal-cancel-button',
+                    componentName: 'adminui-modal-cancel-button',  <====== *****
                   },
                   {
-                    componentName: 'adminui-button',
+                    componentName: 'adminui-button',               <===== *****
                     state: {
                       text: 'Logout',
                       colour: 'danger',
@@ -2546,9 +2745,11 @@ seen every time you click the browser's *refresh* button, a reload will restart 
 the login modal panel will appear.
 
 
+## Integrate the *logout-modal* Assembly into your *app.js* Loader Module
+
 We now need to connect this *logout-modal* Assembly Module into the *app.js* file:
 
-Near the top, import the Sidebar Menu Assembly Module:
+Near the top of your *app.js* file, import the Sidebar Menu Assembly Module:
 
         import {logout_modal_assembly} from './logout-modal.js';
 
@@ -2571,7 +2772,7 @@ DOM's *body* tag:
 
 
 
-##### The QEWD Back-end *logout* Handler
+## Create the QEWD Back-end *logout* Handler
 
 The final part of the logout functionality we need to put in place is the QEWD back-end message
 handler for the *logout* message type.
@@ -2616,6 +2817,9 @@ and then returning an OK response:
 
 Save the *index.js* file and use the *qewd-monitor-adminui* application to stop all the Worker Processes.
 
+
+## try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_16) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
@@ -2629,8 +2833,11 @@ Then try again, and this time click the Logout button to confirm that's what you
 a *toastr* warning that you've successfully logged out, and then 3 seconds later, the page will reload and
 you'll be asked to login again.
 
+----
 
-#### The CRUD Assembly
+# Stage 17: The CRUD Assembly
+
+## Background
 
 We've now reached the point where everything in the application is working, **apart** from the very bit we really want
 it to do and set out to describe!
@@ -2642,11 +2849,14 @@ you'll need to implement in pretty much any *adminui* / QEWD Application, so it'
 The good news is that the entire CRUD cycle for a record can be handled by a single 
 pre-built *adminui* WebComponent Assembly, aptly named *adminui-crud*.  
 
-So let's see how it can be used.
+So let's see how it can be used.  Once again we'll do this in incremental stages.
 
 The *adminui-crud* Assembly Module is a bit different from the standard ones, in that it encapsulates
-a complete set of pre-determined functionality - the CRUD cycle for a record - but in a way that can
-be customised.
+a complete set of pre-determined functionality - the CRUD (Create, Retrieve, Update, Delete) 
+cycle for a record - but in a way that you can customise.
+
+
+## Add the CRUD Assembly to your *app.js* File
 
 We can begin by loading it as if it was a standard Assembly Module.  In the *app.js* file, import it
 as follows:
@@ -2659,7 +2869,7 @@ Then register it as *person_page*.  It needs access to the *qewd-client* APIs, s
 
         webComponents.addComponent('person_page', crud_assembly(QEWD));
 
-Whilst these two steps above should be familiar by now, the next step is a new one.
+Whilst these two steps above should be familiar by now, the next step is a new one:
 
 If you remember in the *sidebar-menu* Assembly, the *nav* menu option for selecting the *Person
 Editor* page looked like this:
@@ -2669,13 +2879,16 @@ Editor* page looked like this:
               state: {
                 title: 'Person Editor',
                 icon: 'user',
-                contentPage: 'person',
+                contentPage: 'person',      <===== *****
                 active: true
               }
             },
 
-This tells *mg-webComponents* to load a page named *person* into the UI's *content area*.  This
-requires a special API that we apply to the Assembly we just registered as *person_page*:
+The *contentPage* state property tells *mg-webComponents* to load a page named 
+*person* into the Admin UI's *content area*.  
+
+To make this work, in our *app.js* Loader module we use a special API that we apply to the Assembly 
+we just registered as *person_page*:
 
         webComponents.register('person', webComponents.components.person_page);
 
@@ -2684,6 +2897,9 @@ It actually adds some additional
 Bootstrap markup to the Assembly so that it can be lazily-loaded into the *content area*, and also so that
 it can be shown and hidden when selected and deselected respectively via sidebar menu options.
 
+
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_17) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
@@ -2691,13 +2907,17 @@ Try this change out by clicking the browser's *refresh* button.  This time, afte
 click the *Person Editor* option in the *sidebar* menu, you'll see the *adminui-crud* page appear in the UI's
 *content area*.
 
-
 You'll also see a red *toastr* error appear in the top right corner - ignore that for now.
 
+## Load the CRUD Assembly into the Content Area by Default
 
 Let's make one further UI behaviour change before we start working on the CRUD page itself.  In this example, we
 really only have this one page to display, so rather than (or as well as) selecting it from the *sidebar* menu, we
-could save a mouse-click for the user and display it in the *content area* by default when the user has logged in.
+could save a mouse-click for the user and display it in the *content area* by default 
+as soon as the user has logged in.
+
+
+## Modify the *app.js* Loader Module
 
 We can do that my changing the *loadMainView()* function in the *app.js* module to this:
 
@@ -2708,14 +2928,19 @@ We can do that my changing the *loadMainView()* function in the *app.js* module 
           webComponents.loadGroup(components.person_page, root.contentTarget, context);   <======******
         }
 
-Try thus change by clicking the browser's *refresh* button again.  This time, after logging in, the CRUD
+Try this change by clicking the browser's *refresh* button again.  This time, after logging in, the CRUD
 page will appear automatically in the *content area*.
 
 
-#### Customising the CRUD Page
+----
 
-What you're seeing in the UI's *content area* is its default appearance.  As you can see there are various
-parts to what it initially displays:
+# Stage 18: Customising the CRUD Page
+
+## Background
+
+What you're seeing in the UI's *content area* is the default appearance of the CRUD Assembly.  
+
+As you can see there are various parts to what it initially displays:
 
 - a main heading: *Record Maintenance Page*
 
@@ -2730,12 +2955,17 @@ parts to what it initially displays:
 
 We have control over all these aspects of the display and its behaviour.
 
+
+## Customising the Main Heading
+
 Let's start by changing the main heading.
 
-All the customisation is defined in a single object which we're going to call *personAssemblyState*.
+All the customisation is defined in a single object that we're going to call *personAssemblyState*.
 Although we could define this object within the *app.js* file, you'll find that it can eventually get quite big,
 and to keep the *app.js* file clean and tidy, I'm going to use a separate module for
 the *personAssemblyState* object, and import that module into *app.js*.
+
+## Create the *personAssemblyState* Module
 
 So, in your *js* folder, create a new text file named *personAssemblyState.js* and paste the following
 content into it:
@@ -2753,8 +2983,11 @@ We're just going to specify two properties for now:
 - a logical name for our instance of the *adminui-crud* Assembly: *person*
 - our own main title.
 
-Next, we need to import this module into the *app.js* module, so, edit *app.js* and add, along with the
-other *import* commands, this line:
+
+## Load the *personAssemblyState* Module into your *app.js* Loader Module
+
+Next, we need to import this module into the *app.js* module, so, edit *app.js* and add this line near the top
+ (ie after the other *import* commands):
 
         import {personAssemblyState} from './personAssemblyState.js';
 
@@ -2769,19 +3002,25 @@ and add the *personAssemblyState* object as the second argument, ie:
         webComponents.addComponent('person_page', crud_assembly(QEWD, personAssemblyState));
 
 
+## Try it Out
+
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_18) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
 
-
 Test these changes by clicking the browser's *refresh* button.  After logging in, you should now see our
-customised title: *Person Class/Document Editor*.
+CRUD Assembly's customised title: *Person Class/Document Editor*.
 
 
-##### Customising the Summary Card
+----
+
+# Stage 19: Customising the Summary Card
 
 Let's now do some customisation of the Summary Card.
 
-Edit the *personAssemblyState.js* file to contain the following:
+
+## Edit the *personAssemblyState* Module
+
+Edit the *personAssemblyState.js* file to now contain the following:
 
         let personAssemblyState = {
           name: 'person',
@@ -2800,10 +3039,11 @@ Edit the *personAssemblyState.js* file to contain the following:
 
 As you can see, all the customisation of the Summary Card is done via a sub-object named *summary*.
 
-After making these changes, click the browser's *refresh* button and you'll see how the Summary Card has changed.
+After making these changes, click the browser's *refresh* button, login and you'll see how the 
+Summary Card has changed.
 
 
-##### Fetching Existing Summary Records
+## Fetching Existing Summary Records
 
 Let's sort out that error you'll be seeing every time the Person Editor page appears.  If you read the error text,
 you'll see that it's coming from the QEWD back-end, telling us that it can't find a handler method for a message
@@ -2816,7 +3056,7 @@ By default, the CRUD Assembly will use the message type *getSummary* - what it's
 back-end to send it a summary list of records to populate a table.  Now, not only do we not have a handler for
 messages of type *getSummary*, we might want to use a different type: perhaps one that is more intuitive for our
 specific use-case.  So, let's further customise the CRUD Assembly and get it to send a message of type 
-*personsSummary*.
+*personsSummary* instead.
 
 Edit the *personAssemblyState.js* file to contain the following:
 
@@ -2838,13 +3078,20 @@ Edit the *personAssemblyState.js* file to contain the following:
         export {personAssemblyState};
 
 
+You can see that the message types sent to QEWD are defined in a sub-object named *qewd*.  We're changing 
+the type of the one that is used to retrieve a summary of existing (if any) records.
+
+
+## Create the QEWD Back-end *personsSummary* Handler
+
+
 Next, we need to actually create the back-end handler for messages of type *personsSummary*.
 
+But before we can create a back-end message handler, the time has come to decide what our 
+*Person* records will look like within the Cach&eacute; or IRIS database.
 
-##### The Person Record Database Structure
 
-Before we can create a back-end message handler, the time has come to decide what our *Person* records will look like
-within the Cach&eacute; or IRIS database.
+### The Person Record Database Structure
 
 In this tutorial I'm going to show you two alternative versions of essentially the same record structure:
 
@@ -2892,7 +3139,7 @@ By the way, this is the same Person data structure that was used in the
 [REST MicroServices Tutorial](https://github.com/robtweed/qewd-microservices-examples/blob/master/WINDOWS-IRIS-1.md)
 
 
-##### Back to the *personsSummary* Handler
+### Create the *personsSummary* Handler Logic
 
 
 Now, of course, right now we don't have any Person records in either format, so a *personsSummary*
@@ -2914,9 +3161,11 @@ Create the folder path for its *index.js* module file:
                                |- index.js
 
 
-and paste the following contents into the *index.js* file:
+and paste the following contents into the *index.js* file.  Choose the version you want to 
+use, depending on whether you want to use the QEWD-JSdb abstraction or Cach&eacute;/IRIS 
+Objects:
 
-###### QEWD-JSdb Version
+#### QEWD-JSdb Version
 
         module.exports = function(messageObj, session, send, finished) {
           if (!session.authenticated) {
@@ -2974,7 +3223,7 @@ array:
 That *results* array is then sent back to the browser via the *finished()* method.
 
 
-###### Cach&eacute;/IRIS Version
+#### Cach&eacute;/IRIS Version
 
         module.exports = function(messageObj, session, send, finished) {
           if (!session.authenticated) {
@@ -3039,13 +3288,16 @@ That *results* array is then sent back to the browser via the *finished()* metho
 
 Save the version of the *index.js* file you want to use.
 
-Of course, you'll now need to use the *qewd-monitor-adminui* application to stop the Worker processes,
+
+## Try it Out
+
+You'll first need to use the *qewd-monitor-adminui* application to stop the Worker processes,
 to ensure that this new back-end handler method is available to you when needed.
 
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_19) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
-Note that the Cach&eacute;/IRIS version of the *personsSummary* handler has been named *index.js.class*.  If you
-want to use it, make sure you rename it to *index.js*
+Note that in this repository, the Cach&eacute;/IRIS version of the *personsSummary* handler has been named 
+*index.js.class*.  If you want to use it, make sure you rename it to *index.js*
 
 Try it out by clicking the browser's *refresh* button and logging in.  Hopefully, this time you'll
 not get that red *toastr* error, but now you'll see that the Summary Card contains a table that tells
@@ -3055,33 +3307,36 @@ you it's empty:
 
 That's not surprising, since we haven't yet created any Person records!
 
+----
 
-#### Adding a Person Record
+# Stage 20: Creating a Person Record
 
 The *adminui-crud* Assembly provides you with a button (in the top right of the Summary Card header)
-that allows you to add a new record.
+that allows you to create a new record.
 
 Currently if you click it, as we saw earlier, a second Card - the New Record card - will appear,
 but all it will currently contain is a Save button.
 
-So the next step is to provide the customisation information that will allow us to add a form into which we
-can enter the properties of a new record.  In our example that will mean a form that allows us to enter:
+So in this stage, we'll provide the customisation information that will allow us to add a form into which we
+can enter the properties of a new record.  In our example, according to the data model for the
+*Person* record that was described in the previous stage, this will mean we need a 
+form that allows us to enter:
 
 - the person's name
 - the person's gender
 - the person's city of residence
 
-You'll also see that if you click that Save button, it will send, by default, a *saveRecord* request to the QEWD
-back.  A red *toastr* error will then appear, because we haven't yet created the corresponding QEWD message
-handler.  
+You'll also see that if you currently click that Save button, it will send, by default, 
+a *saveRecord* request to the QEWD back-emd.  A red *toastr* error will then appear, because 
+we haven't yet created the corresponding QEWD message handler.  
 
 So, in addition to the form, we'll need to create a QEWD back-end message
 handler for validating the form details and, if OK, creating a new Person record.
 
 Let's work through these steps now.
 
-##### Defining the New Person Form
 
+## Customising the New Person Card
 
 The first thing we'll customise in the New Person Card is the title and card width.  We can do that by
 editing the *personAssemblyState.js* file and add this to the object:
@@ -3121,6 +3376,9 @@ To clarify, the *personAssemblyState.js* file should now look like this:
 
 
 Feel free to see the effect of this change by clicking the browser's *refresh* button.
+
+
+## Defining the Form Fields in the New Person Card
 
 The form fields we need are also defined within this *detail* object, via an array named *fields*. 
 Edit it again so that the *detail* object looks like this:
@@ -3164,24 +3422,25 @@ Edit it again so that the *detail* object looks like this:
 As you can see, we're adding the three fields for *name*, *gender* and *city*.  Each form field is
 defined by specifying:
 
-- name: the logical name for this form field
-- data_property: the property name for this field within the saved record.  This is actually optional.  if
+- *name*: the logical name for this form field
+- *data_property*: the property name for this field within the saved record.  This is actually optional.  if
 omitted, the *name* property value is used for the *data_property* also.  So in our example we could leave this
 property out of the *fields* array elements
-- label: The label to display before the input field
-- type: the HTML form field type
-- labelWidth: controls the proportion of space occupied by the label versus the corresponding input field.  A
+- *label*: The label to display before the input field
+- *type*: the HTML form field type
+- *labelWidth*: controls the proportion of space occupied by the label versus the corresponding input field.  A
 starting point of 4 is recommended, and then try adjusting it above or below that until you're happy with the
 layout
-- options: (select type only) defines the select drop-down options.  For each you should specify the text
+- *options*: (select type only) defines the select drop-down options.  For each you should specify the text
 and corresponding value.  The value is what is sent to the QEWD back-end whilst the text is what appears in the UI.
 
 Save your changes and click the browser's *refresh* button.  After logging in, click the Add New Person button.
 The New Person card should now contain the three form fields we need!
 
-##### Customising the Save Button
 
-The *adminui-crud* also allows you to customise the New Person Card's Save button if you want.
+## Customising the Save Button
+
+The *adminui-crud* Assembly also allows you to customise the New Person Card's Save button if you want.
 
 It's controlled by another new sub-object within the *personAssemblyState* object: *update*.
 
@@ -3267,6 +3526,9 @@ also done via the *update* sub-object:
 
 Once again, try reloading the page in the browser again and you'll see this customised *Save* button.
 
+
+## Test the Form
+
 Now try entering some values into the form fields.  For example:
 
 - name: Rob
@@ -3282,7 +3544,7 @@ However, you'll still be seeing a red *toastr* error because there isn't yet any
 handler defined.
 
 
-##### Create the *updatePerson* QEWD Back-end Handler
+## Create the *updatePerson* QEWD Back-end Handler
 
 This should be becoming familiar now.  Create the folder path for the *updatePerson*'s *index.js* module file:
 
@@ -3297,9 +3559,9 @@ This should be becoming familiar now.  Create the folder path for the *updatePer
                                |- index.js
 
 
-and paste the following contents into the *index.js* file:
+and paste the following contents into the *index.js* file (depending on which version you want to use):
 
-###### QEWD-JSdb Version
+### QEWD-JSdb Version
 
         module.exports = function(messageObj, session, send, finished) {
           if (!session.authenticated) {
@@ -3387,9 +3649,11 @@ an *ok* flag for good measure:
 
 
 
-###### Cach&eacute;/IRIS Version
+### Cach&eacute;/IRIS Version
 
+        let mclass = require('mg-dbx').mclass;
         module.exports = function(messageObj, session, send, finished) {
+
           if (!session.authenticated) {
             return finished({error: 'Not authenticated'});
           }
@@ -3397,57 +3661,93 @@ an *ok* flag for good measure:
           if (!messageObj.params) {
             return finished({error: 'No params present in request'});
           }
-           if (!messageObj.params.properties) {
-            return finished({error: 'No properties defined in request'});
+
+          let name = messageObj.params.name;
+          if (!name || name === '') {
+            return finished({error: 'Missing name value'});
           }
-          
-          let results = [];
-          let properties = messageObj.params.properties;
-          let names = {};
-          properties.forEach(function(property) {
-            if (property !== 'id') {
-              let name = property.charAt(0).toUpperCase() + property.slice(1)
-              names[name] = property;
-            }
-          });
-          
+
+          let gender = messageObj.params.gender;
+          if (!gender || gender === '' || gender === 'invalid') {
+            return finished({error: 'Missing gender value'});
+          }
+
+          let city = messageObj.params.city;
+          if (!city || city === '') {
+            return finished({error: 'Missing city value'});
+          }     
+
           let db = this.db.dbx;
-          let query = db.sql({sql: "select * from SQLUser.Person", type: "Cache"});
-          let result = query.execute();
-          let res;
-          let property;
           
-           while ((result = query.next()) !== null) {
-              res = {};
-              res.id = result.ID;
-              for (property in names) {
-                res[names[property]] = result[property];
-              }
-              results.push(res);
-           }
-           query.cleanup();
+          /*
+            Instantiate a new Person instance
+          */
 
-          finished({summary: results});
+          let person = new mclass(db, 'User.Person', '%New');
 
+          /*
+            mg-dbx allows us to set properties using the setproperty method
+          */
+
+          person.setproperty('Name', name);
+          person.setproperty('Gender', gender);
+          person.setproperty('City', city);
+          
+          /*
+            person methods are invoked using the mg-dbx method function
+
+            We'll save the person instance, get the id that was allocated to it
+            and close the instance
+
+          */
+
+          person.method('%Save');
+          let id = person.method('%Id');
+          person.method('%Close'); 
+         
+            finished({
+              ok: true,
+              id: id
+            });
         };
 
 
 
 This first ensures that the incoming request was from an authentication (ie logged-on) user.  It
-then checks that the incoming request included a *params* object and, within that, a *properties*
-object.  We'll see later why those are important.
+then checks that the incoming request included a *params* object and, within that, non-empty values
+for *name*, *gender* and *city*.
 
-It then invokes a Cach&eacute;/IRIS SQL query via the *mg-dbx sql* API to retrieve all Person records that exist:
+It then instantiates a new Person object:
 
-          let db = this.db.dbx;
-          let query = db.sql({sql: "select * from SQLUser.Person", type: "Cache"});
-          let result = query.execute();
+          let person = new mclass(db, 'User.Person', '%New');
 
-We'll return later to examine the rest of its logic, but for now we can summarise by saying it
-goes through the *resultSet* created by this query and adds each *resultSet* record's Id along with
- a set of selected properties to a *results* array:
+and updates its properties using the values in the incoming *params* object
 
-That *results* array is then sent back to the browser via the *finished()* method.
+The new Person object Id is finally returned in the response.
+
+
+## Try it out
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_20) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+Note that the Cach&eacute;/IRIS version of the *updatePerson* handler has been named *index.js.class*.  If you
+want to use it, make sure you rename it to *index.js*
+
+Try it out by clicking the browser's *refresh* button and logging in.  This time you'll
+see that the Summary Card contains a table that tells you it's empty.  Clicking the green *+* button
+in the card's header will bring up a new card into which you can add the name, gender and city of a new
+Person record.  Clicking the Save buttton should then display the newly added record in the table.  You
+should be able to keep adding records by repeating these steps, and the table will display all the records
+you've added.
+
+So you can see that we've now successfully implemented the Create and Retrieve steps of the CRUD cycle.  
+
+----
+
+# Stage 21: Implementing the Update Step of the CRUD Cycle
+
+... to follow
+
 
 
 
