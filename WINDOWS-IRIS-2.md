@@ -25,6 +25,12 @@
 - [Stage 18: Customising the CRUD Page](#stage-18-customising-the-crud-page)
 - [Stage 19: Customising the Summary Card](#stage-19-customising-the-summary-card)
 - [Stage 20: Creating a Person Record](#stage-20-creating-a-person-record)
+- [Stage 21: Customise the Summary Table Display](#stage-21-customise-the-summary-table-display)
+- [Stage 22: Implementing the Update Step of the CRUD Cycle](#stage-22-implementing-the-update-step-of-the-crud-cycle)
+- [Stage 23: Customise the Edit Person Card](#stage-23-customise-the-edit-person-card)
+- [Stage 24: Saving an Edited Person Record](#stage-24-saving-an-edited-person-record)
+- [Stage 25: Deleting Person Records](#stage-25-deleting-person-records)
+
 
 ----
 
@@ -4401,7 +4407,7 @@ You now have the *Create*, *Retrieve* and *Update* steps of the CRUD cycle!
 
 ----
 
-# Step 25: Deleting *Person* Records
+# Stage 25: Deleting *Person* Records
 
 ## Background
 
