@@ -1,0 +1,53 @@
+module.exports = function(messageObj, session, send, finished) {
+  if (!session.authenticated) {
+    return finished({error: 'Not authenticated'});
+  }
+
+  if (!messageObj.params) {
+    return finished({error: 'No params present in request'});
+  }
+
+  let name = messageObj.params.name;
+  if (!name || name === '') {
+    return finished({error: 'Missing name value'});
+  }
+
+  let gender = messageObj.params.gender;
+  if (!gender || gender === '' || gender === 'invalid') {
+    return finished({error: 'Missing gender value'});
+  }
+
+  let city = messageObj.params.city;
+  if (!city || city === '') {
+    return finished({error: 'Missing city value'});
+  }
+
+  let id = messageObj.params.id;
+  if (!id || id === '') {
+    return finished({error: 'Missing id value'});
+  }
+
+  let persons = this.db.use('Person');
+  let personById = persons.$('by_id');
+
+  if (id === 'new-record') {
+    id = persons.$('id_counter').increment();
+  }
+  else {
+    // make sure an erroneous id hasn't been sent
+    if (!personById.$(id).exists) {
+      return finished({error: 'No such Person record with id ' + id});
+    }
+  }
+
+  personById.$(id).setDocument({
+    name: name,
+    gender: gender,
+    city: city
+  }); 
+
+  finished({
+    ok: true,
+    id: id
+  });
+};

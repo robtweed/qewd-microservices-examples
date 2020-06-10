@@ -999,7 +999,7 @@ Note that we are locating an instance of the *admin-modal-root* WebComponent tha
             ...etc
 
 
-## try it Out
+## Try it Out
 
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_6) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
@@ -1976,7 +1976,7 @@ We're now ready to define the *sidebar* menu.
 
 Initially, during login, we just displayed a title at the top of the
 *sidebar*.  We're now going to append a further Assembly to the *sidebar*, containing the menu for a logged-in
-user.  Let's call this additional Assembly Module *sidebar-menu.js".
+user.  Let's call this additional Assembly Module *sidebar-menu.js*.
 
 So in your application's *js* folder, create a new text file named *sidebar-menu.js* and paste the following
 content:
@@ -3220,7 +3220,7 @@ Objects:
         };
 
 
-This first ensures that the incoming request was from an authentication (ie logged-on) user.  It
+This first ensures that the incoming request was from an authenticated (ie logged-on) user.  It
 then checks that the incoming request included a *params* object and, within that, a *properties*
 object.  We'll see later why those are important.
 
@@ -3290,7 +3290,7 @@ That *results* array is then sent back to the browser via the *finished()* metho
 
 
 
-This first ensures that the incoming request was from an authentication (ie logged-on) user.  It
+This first ensures that the incoming request was from an authenticated (ie logged-on) user.  It
 then checks that the incoming request included a *params* object and, within that, a *properties*
 object.  We'll see later why those are important.
 
@@ -3639,7 +3639,7 @@ and paste the following contents into the *index.js* file (depending on which ve
 
 
 
-This first ensures that the incoming request was from an authentication (ie logged-on) user.  It
+This first ensures that the incoming request was from an authenticated (ie logged-on) user.  It
 then checks that the incoming request included a *params* object and, within that, non-empty values
 for *name*, *gender* and *city*.
 
@@ -3734,7 +3734,7 @@ an *ok* flag for good measure:
 
 
 
-This first ensures that the incoming request was from an authentication (ie logged-on) user.  It
+This first ensures that the incoming request was from an authenticated (ie logged-on) user.  It
 then checks that the incoming request included a *params* object and, within that, non-empty values
 for *name*, *gender* and *city*.
 
@@ -3748,6 +3748,9 @@ The new Person object Id is finally returned in the response.
 
 
 ## Try it out
+
+You'll first need to use the *qewd-monitor-adminui* application to stop the Worker processes,
+to ensure that this new back-end handler method is available to you when needed.
 
 To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_20) 
 to confirm what your application's folder layout and files should look like at this stage of this tutorial.
@@ -3765,18 +3768,888 @@ So you can see that we've now successfully implemented the Create and Retrieve s
 
 ----
 
-# Stage 21: Implementing the Update Step of the CRUD Cycle
+# Stage 21: Customise the Summary Table Display
 
-... to follow
+## Background
+
+By default, the CRUD Assembly's summary table assumes that the data records being displayed have a
+property named *name*, and that that is the only property to display in the table.
+
+If you've tried adding a number of records via the CRUD assembly, you'll have seen, however, that
+if you re-use the same name, there is no way to distinguish which is which in the summary table.
+
+So, the CRUD assembly allows you to customise the properties you want to display in each summary table row.
+
+Let's therefore modify the CRUD Assembly so that it displays both the *name* and the *city* properties.
+
+
+## Edit the *personAssemblyState.js* Module
+
+In the *summary* section of your *personAssemblyState.js* file, add the following lines:
+
+          summary: {
+            ...etc
+
+            headers: ['Name', 'City'],           <====== ****
+            data_properties: ['name', 'city'],   <====== ****
+
+
+*data_properties* specifies the property names in the data records that will be displayed
+in the CRUD Assembly's summary table.
+
+You **must** also define the *headers*: these define the column titles in the summary table
+display.  The number of elements must be the same in the *headers* and *data_properties* arrays.
+
+
+## Try it out
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_21) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+
+Try it out by clicking the browser's *refresh* button and logging in.  This time the summary table should
+display the name and city for each existing *Person* record.
+
+Try adding another new Person record: you should also see its name and city appear in the table when you
+click the form's Save button.
+
+
+----
+
+# Stage 22: Implementing the Update Step of the CRUD Cycle
+
+## Background
+
+You're going to discover that most of what we've already done for the Create step is actually re-used by
+the CRUD assembly for the Update step.
+
+There's one key step we'll need to implement, however, before it will work.  You can see what it is
+if, whilst displaying the records in the CRUD Assembly's Summary Table, you click the *Select* button
+in one of the table rows.
+
+You should see a red *toastr* error appear in the top right corner, telling you:
+
+        Handler not defined for demo messages of type getRecordDetail
+
+If you look in your browser's JavaScript console, you should see that it sent a message with a
+type of *getRecordDetail* to the QEWD back-end, identifying the *id* of the record whose *Select*
+button you clicked, eg:
+
+        sent: {"type":"getRecordDetail","params":{"id":"4"}}
+
+and you'll see that the error message came from the QEWD back-end, because, of course, we've not
+defined the handler for such a message.
+
+So, by default, the CRUD Summary Table *Select* button in each row will send a message to the
+QEWD back-end with a type of *getRecordDetail*.  We could decide to just use that default message
+type and create a QEWD back-end handler module for that *getRecordDetail* type.  However, we may
+want to use our own named type with a more relevant name.  For example, we might want, in our 
+example, the type to be *getPersonDetail*.
+
+
+## Modifying the *personAssemblyState.js* Module
+
+We can customise the CRUD Assembly to use such a method by editing the *personAssemblyState.js*
+file.  Specifically, in the summary section, change this:
+
+        summary: {
+          ...etc
+
+          qewd: {
+            getSummary: 'personsSummary'
+          }
+
+to this:
+
+        summary: {
+          ...etc
+
+          qewd: {
+            getSummary: 'personsSummary',
+            getDetail: 'getPersonDetail'
+          }
+
+
+So the *summary.qewd.getDetail* property defines the message type to use when you click the
+Select button to fetch the selected record's details.
+
+After you make this change, try refreshing the page in the browser, login and click the
+*Select* button in one of the rows of the Summary Table.  You'll still see a *toastr*
+error, but the error message will now say:
+
+        Handler not defined for demo messages of type getPersonDetail
+
+and, in the JavaScript console, you'll see that it now sends the message type we require, eg:
+
+        sent: {"type":"getPersonDetail","params":{"id":"2"}}
+
+
+We now need to create the corresponding QEWD back-end Handler for that message type.
+
+
+## Create a *getPersonDetail* QEWD Back-end Handler Module
+
+
+Create the folder path for its *index.js* module file:
+
+        C:\qewd
+            |
+            |- qewd-apps
+                    |
+                    |- demo
+                         |
+                         |- getPersonDetail
+                               |
+                               |- index.js
+
+
+The purpose of this handler will be to fetch *all* the properties of the selected
+*Person* record, so that we can Update (ie edit) them.
+
+Depending on whether you're using the QEWD-JSdb abstraction or Cach&eacute;/IRIS Objects, 
+paste the corresponding code below into the *index.js* file:
+
+### QEWD-JSdb Version
+
+        module.exports = function(messageObj, session, send, finished) {
+          if (!session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          if (!messageObj.params) {
+            return finished({error: 'No params present in request'});
+          }
+          let id = messageObj.params.id;
+           if (!id) {
+            return finished({error: 'id not defined in request'});
+          }
+
+          let person = this.db.use('Person', 'by_id', id);
+          if (!person.exists) {
+            return finished({error: 'No record exists with that id'});
+          }
+
+          finished({record: person.getDocument(true)});
+        };
+
+
+This first ensures that the incoming request was from an authenticated (ie logged-on) user.  It
+then checks that the incoming request included a *params* object and, within that, a non-empty value
+for *id*.
+
+It then instantiates a QEWD-JSdb DocumentNode Object pointing to a persistent JSON object named
+*Person* with the incoming *id*:
+
+          let person = this.db.use('Person', 'by_id', id);
+
+and then checks to ensure such a record actually exists in the database.
+
+Finally it maps the Person record to JSON and returns it as an object named *record*:
+
+          finished({record: person.getDocument(true)});
+
+
+### Cach&eacute;/IRIS Version
+
+        module.exports = function(messageObj, session, send, finished) {
+          if (!session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          if (!messageObj.params) {
+            return finished({error: 'No params present in request'});
+          }
+          let id = messageObj.params.id;
+           if (!id || id === '') {
+            return finished({error: 'id not defined in request'});
+          }
+
+          let db = this.db.dbx;
+          let person = db.classmethod('User.Person', '%OpenId', id);
+          let results = {
+            name: person.getproperty('Name'),
+            gender: person.getproperty('Gender'),
+            city: person.getproperty('City')
+          };
+          person.method('%Close'); 
+          finished({record: results});
+        };
+
+This first ensures that the incoming request was from an authenticated (ie logged-on) user.  It
+then checks that the incoming request included a *params* object and, within that, a non-empty value
+for *id*.
+
+It then opens the *Person* with the incoming *id*:
+
+          let db = this.db.dbx;
+          let person = db.classmethod('User.Person', '%OpenId', id);
+
+and then fetches its *name*, *gender* and *city* properties, returning them 
+in an object named *record*:
+
+          finished({record: results});
+
+
+## Try it out
+
+You'll first need to use the *qewd-monitor-adminui* application to stop the Worker processes,
+to ensure that this new back-end handler method is available to you when needed.
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_22) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+Note that the *getPersonDetail* handlers in the *qewd-apps/demo* folder of this repository are named
+*index.js.jsdb* and *index.js.class* for the QEWD-jsDB and Cach&eacute;/IRIS version
+respectively.  Rename the version you want to use *index.js*.
+
+Refresh the page in the browser, login and click the
+*Select* button in one of the rows of the Summary Table. This time 
+you should see the data values for the selected *Person* record appear in
+a new Card.
+
+You may be surprised to discover that the CRUD Assembly is re-using the same Card with the same
+form fields that we defined for the New Record.  What it's doing however is:
+
+- displaying a different title - currently *Edit Record*
+- displaying a button (with a cog icon) in the right side of the Card title
+- displaying the form fields in read-only format
+
+If you click the cog button, you'll discover that the form fields are no longer read-only, so you
+can change the values, and you'll also see the Save button appear.
+
+
+Try clicking the *Select* button for some other rows in the Summary Table: you'll see their values
+appearing in the *Edit Person* card (which will automatically return to read-only mode).
+
+Then try clicking the New Person button at the top of the Summary Table Card: you'll see the
+*Edit Person* Card switch to an "Enter New Person* Card.
+
+All this UI behaviour and functionality is built-in to the CRUD Assembly.
+
+----
+
+# Stage 23: Customise the *Edit Person* Card
+
+There are a few further customisations we can make to the *Edit Person* Card at this stage.  They are optional
+but worth knowing about.
+
+Edit the *personAssemblyState.js* file and add the following properties to the *detail*
+object:
+
+        detail: {
+          ...etc
+
+          btnIcon: 'user-cog',
+          btnColour: 'success',
+          btnTooltip: 'Edit User Details',
+          title_data_property: 'name',
+
+
+The first three of these properties will:
+
+- change the icon used for the *Edit* button in the *Edit Person* Card's header
+- change the colour of the *Edit* button
+- add a tooltip so you should see *Edit User Details* pop up when you move your
+mouse over the *Edit* button
+
+The final one is an interesting one: rather than simply adding a static title to
+the *Edit Person* Card, you can tell the CRUD Assembly to display a property as
+the title instead.
+
+## Try it Out
+
+Save your changes to the *personAssemblyState.js* file, then click the browser's refresh
+button and log in.  Select a *Person* record from the Summary Table and you should now see
+the name of the selected person appearing as the title in the *Edit Person* Card's header.
+
+
+## More Complex Edit Card Title Customisation
+
+Simply displaying a single property from the selected Person record to act as the
+title of the *Edit Person* Card may not be sufficient or adequate.  In this case,
+you can define a function for the *title_data_property* property.  For example:
+
+        title_data_property: function() {
+          return 'Edit: ' + this.record.name;
+        },
+
+The *this* context for your function is actually that of the *Select* button's
+WebComponent (ie that you clicked in the Summary Table).  However, the important
+thing is that the Person data properties that were fetched from the QEWD back-end
+are available to you as properties of *this.record*.  The string value your function
+returns will be used as the title of the *Edit Person* Card, so you can
+construct whatever string you like using whatever data properties you like.
+
+## Try it Out
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_23) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+
+Click the browser's *refresh*
+button and log in.  Select a *Person* record from the Summary Table and you should now see
+*Edit: * followed by the name of the selected person appearing as the title in the *Edit Person* Card's header.
+
+----
+
+# Stage 24: Saving an Edited Person Record
+
+## Background
+
+As we've previouusly noted, if you select a Person record and click the *Edit*
+ button in the *Edit Peson* Card's header, the form fields become activated and
+the *Save* button appears.
+
+The text in the *Save* button will be showing as *Save Person*, because that is what we
+customised it to be back in [Stage 20](#customising-the-save-button), specifically
+via this section of the *personAssemblyState.js* module file:
+
+          update: {
+            btnText: 'Save Person',
+            btnColour: 'success',
+            qewd: {
+              save: 'updatePerson'
+            }
+          }
+
+You may have noticed when we originally defined this for saving a new record that the
+section was named *update* rather than, say, *new*.  That's because, as we've already
+noted, the same Card sub-Assembly
+is used for both saving new Person records and updating/editing existing Person Records.
+
+Similarly, the name we used for the QEWD Back-end Handler was *updatePerson*, because
+the same messge type will be used by the CRUD Assembly for both saving new and 
+updating existing Person records.
+
+
+## Change the *Save* Button Text
+
+So that means we should first probably make a cosmetic adjustment to the 
+*personAssemblyState.js* module file, by amending the *update.btnText* property to:
+
+          update: {
+            btnText: 'Save/Update Person',
+
+## The *updatePerson* QEWD Back-end Handler
+
+We also need to review the *updatePerson* QEWD Back-end Handler logic.  Currently it
+is written assuming it will only be handling a new Person record.  Here's the
+relevant logic in both versions:
+
+### QEWD-JSdb Version
+
+        let persons = this.db.use('Person');
+        let id = persons.$('id_counter').increment();  <==== ****
+
+        persons.$(['by_id', id]).setDocument({
+          name: name,
+          gender: gender,
+          city: city
+        });
+
+
+### Cach&eacute;/IRIS Version
+
+        let db = this.db.dbx;
+        let person = db.classmethod('User.Person', '%New'); <===== ***
+      
+        person.setproperty('Name', name);
+        person.setproperty('Gender', gender);
+        person.setproperty('City', city);
+        person.method('%Save');
+
+
+So in both versions, a new *Person* record with a new *id* is created.
+
+We need to modify this so that this only happens when a new *Person* record
+is being saved in the CRUD UI.  If an existing record is being updated in the
+CRUD UI, we need, instead, to get the *Person* record for the *id* of the
+*Person* who was selected in the CRUD UI.  
+
+So how do we determine that?
+
+It turns out that the CRUD UI provides us with that information.  Let's make a 
+quick change to demonstrate what happens.
+
+
+## Temporarily Modify the *personAssemblyState.js* Module
+
+Edit the *personAssemblyState.js* Module file and change this section:
+
+          update: {
+            btnText: 'Save Person',
+            btnColour: 'success',
+            qewd: {
+              save: 'updatePerson'
+            }
+          }
+
+to this:
+
+          update: {
+            btnText: 'Save Person',
+            btnColour: 'success',
+            qewd: {
+              save: 'updatePersonX' <===== ****
+            }
+          }
+
+In other words, we're going to temporarily and deliberately change the QEWD Back-end Handler
+name that the CRUD UI will use for the *Save* button to one that doesn't exist.
+
+Click the browser's *refresh* button, login and first click the *New Person* button.  Enter
+some values in the New Person form and click the *Save/Update Person* button.
+
+You'll now see a red *toastr* error telling us, not surprisingly:
+
+        Handler not defined for demo messages of type updatePersonX
+
+Now take a look in tbe browser's JavaScript console and you should see the message that was
+sent to the QEWD Back-end, eg:
+
+        sent: {
+          "type":"updatePersonX",
+          "params":{
+            "id":"new-record",         <======*****
+            "name":"John",
+            "gender":"m",
+            "city":"London"
+          }
+        }
+
+Notice the *id* that is being sent is a special reserved value: *new-record*.
+
+Now select an existing *Person* record, click the *Edit* button to activate the
+form fields and click the *Save/Update Person* button. 
+
+You'll again get the red *toastr* error, but again check the browser's JavaScript console
+and examine the message that was sent to QEWD, eg:
+
+        sent: {
+          "type":"updatePersonX",
+          "params":{
+            "id":"3",                <======*****
+            "name":"Rob",
+            "gender":"m",
+            "city":"Redhill"
+          }
+        }
+
+So you can see that when you are updating a record, the CRUD UI sends the *id* of the 
+*Person* record you selected.
+
+We now have the information we need to make the appropriate changes to the 
+*updatePerson* QEWD Back-end Handler.
+
+But before we do that, edit the *personAssemblyState.js* Module file 
+back to its original state:
+
+          update: {
+            ...etc
+
+            qewd: {
+              save: 'updatePerson'  <===== *****
+            }
+          }
+
+
+## Modify the *updatePerson* QEWD Back-end Handler Module
+
+You'll need to edit the */qewd-apps/demo/updatePerson/index.js* file.
+
+Here's my suggested changes to make both versions work for both new and
+updated *Person* records:
+
+### QEWD-JSdb Version
+
+        module.exports = function(messageObj, session, send, finished) {
+          if (!session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          if (!messageObj.params) {
+            return finished({error: 'No params present in request'});
+          }
+
+          let name = messageObj.params.name;
+          if (!name || name === '') {
+            return finished({error: 'Missing name value'});
+          }
+
+          let gender = messageObj.params.gender;
+          if (!gender || gender === '' || gender === 'invalid') {
+            return finished({error: 'Missing gender value'});
+          }
+
+          let city = messageObj.params.city;
+          if (!city || city === '') {
+            return finished({error: 'Missing city value'});
+          }
+
+          let id = messageObj.params.id;
+          if (!id || id === '') {
+            return finished({error: 'Missing id value'});
+          }
+
+          let persons = this.db.use('Person');
+          let personById = persons.$('by_id');
+
+          if (id === 'new-record') {
+            id = persons.$('id_counter').increment();
+          }
+          else {
+            // make sure an erroneous id hasn't been sent
+            if (!personById.$(id).exists) {
+              return finished({error: 'No such Person record with id ' + id});
+            }
+          }
+
+          personById.$(id).setDocument({
+            name: name,
+            gender: gender,
+            city: city
+          }); 
+
+          finished({
+            ok: true,
+            id: id
+          });
+        };
 
 
 
+### Cach&eacute;/IRIS Version
+
+        module.exports = function(messageObj, session, send, finished) {
+          if (!session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          if (!messageObj.params) {
+            return finished({error: 'No params present in request'});
+          }
+
+          let name = messageObj.params.name;
+          if (!name || name === '') {
+            return finished({error: 'Missing name value'});
+          }
+
+          let gender = messageObj.params.gender;
+          if (!gender || gender === '' || gender === 'invalid') {
+            return finished({error: 'Missing gender value'});
+          }
+
+          let city = messageObj.params.city;
+          if (!city || city === '') {
+            return finished({error: 'Missing city value'});
+          }     
+
+          let id = messageObj.params.id;
+          if (!id || id === '') {
+            return finished({error: 'Missing id value'});
+          }
+          let db = this.db.dbx;
+          let person;
+
+          if (id === 'new-record') {
+            person = db.classmethod('User.Person', '%New');
+          }
+          else {
+            person = db.classmethod('User.Person', '%OpenId', id);
+            if (person === '') {
+              return finished({error: 'No such Person record with id ' + id});
+            }
+          }
+
+          person.setproperty('Name', name);
+          person.setproperty('Gender', gender);
+          person.setproperty('City', city);
+
+          person.method('%Save');
+          id = person.method('%Id');
+          person.method('%Close'); 
+
+          finished({
+            ok: true,
+            id: id
+          });
+        };
+
+
+In both versions I've made the following changes:
+
+- check that an *id* is present in the incoming *params* object
+- if the *id* is the reserved value *new-record*, instantiate a new Person record
+  - otherwise open a pointer to the specified *id*
+  - and check that the specified *id* is not erroneous
+
+The two versions of the QEWD Back-end Handler will now cater for both new and existing
+*Person* records.
+
+## Try it Out
+
+You'll first need to use the *qewd-monitor-adminui* application to stop the Worker processes,
+to ensure that the updated back-end handler method is available to you when needed.
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_24) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+
+
+Click the browser's *refresh*
+button and log in.  You should now be able to create new *Person* records and edit/update
+existing ones.
+
+You now have the *Create*, *Retrieve* and *Update* steps of the CRUD cycle!
+
+
+----
+
+# Step 25: Deleting *Person* Records
+
+## Background
+
+We just have one last step to implement: deleting *Person* records.
+
+You'll notice that there's currently apparenly now way to delete records in
+the CRUD Assembly's UI.  That's because, by default, deleting is disabled.
+
+##  Enabling Deletions
+
+Edit the *personAssemblyState.js* Module file, and add the following to the *summary*
+section:
+
+        summary: {
+          ...etc 
+
+          enableDelete: true  <===== *****
+
+
+## Try it Out
+
+Save the change and click your browser's *refresh* button and log in.
+
+Now you should see that a red *Delete* button has been added to each row
+in the Summary Table.
+
+Try clicking one of the *Delete* buttons.  A modal confirmation panel will
+appear, asking you to confirm that you want the deletion to go ahead.
+
+Click the *Cancel* button and the modal panel should disappear and no further
+action will take place.
+
+Click a *Delete* button again and this time click the *Yes* button in the
+modal confirmation panel.
+
+This time you should get, not surprisingly, a red *toastr* error appearing, telling
+you:
+
+        Handler not defined for demo messages of type deleteRecord
+
+If you look in the browser's JavaScript Console, you'll see that it sent a
+message to the QEWD back-end similar to this:
+
+        sent: {"type":"deleteRecord","params":{"id":"4"}}
+
+So it's sending a message of type *deleteRecord*, and adding the *id* of the
+*Person* record you want to delete.
+
+
+## Customising the Modal Confirmation Panel
+
+When you click a *Delete* button, you'll see that the title in the
+modal confirmation panel is:
+
+        Deleting {{name}}
+
+where {{name}} is the value of the *name* column of the Summary Table row
+whose *Delete* button you clicked
+
+eg:
+
+        Deleting John
+
+We can customise this title and change it to either some static text or, more
+likely, a title that makes use of other values in the Summary Table row.
+
+Edit the *personAssemblyState.js* Module file, and add the following to the *summary*
+section:
+
+        summary: {
+          ...etc 
+
+          enableDelete: true,
+
+          deleteConfirmText: function(data) {
+            return ' Record for ' + data[0] + ' from ' + data[1];
+          }
+
+The *deleteConfirmText* property allows us to define a function whose
+return value will be used as the title of the modal confirmation panel.
+The function has a single argument - *data* - which is an array containing
+the column values from the row you selected for deletion.
+
+In our example application, we've specified that the first column of each
+row (*data[0]*) is the *Person's* *name* and the second column (*data[1]*) is the *city*.
+
+
+## Try it Out
+
+Save the change and click your browser's *refresh* button, log in and click a *Delete*
+button for one of the rows of the Summary Table.
+
+This time the title should look similar to this:
+
+        Deleting Record for John from London
+
+
+## Customising the QEWD Back-end Handler
+
+You've seen that when you confirm the deletion, a message is sent of type *deleteRecord*.
+
+We can customise the CRUD Assembly to send a message type of our choosing.
+
+Edit the *personAssemblyState.js* Module file, and add the following to the 
+*summary.qewd* object:
+
+        summary: {
+          ...etc
+
+          qewd: {
+            getSummary: 'personsSummary',
+            getDetail: 'getPersonDetail',
+            delete: 'deletePerson'         <====== *****
+          },
+
+
+## Try it Out
+
+Save the change and click your browser's *refresh* button, log in and click a *Delete*
+button for one of the rows of the Summary Table.  Then click the *Yes* button in the
+modal confirmation panel.
+
+You'll still get a red *toastr* error appearing, but this time it will tell you:
+
+        Handler not defined for demo messages of type deletePerson
+
+We now need to create the *deletePerson* QEWD Back-end Handler module.
+
+
+## Creating the *deletePerson* QEWD Back-end Handler Module
+
+When you clicked the *Yes* button, if you look in the browser's JavaScript console, you'll see
+that it sent a message to QEWD similar to this:
+
+        sent: {"type":"deletePerson","params":{"id":"4"}}
+
+Notice how the *id* of the *Person* record you selected for deletion is included
+in the message.
+
+So let's create the QEWD Back-end Handler module for this message.
+
+First, create the folder path for the *index.js* module file:
+
+        C:\qewd
+            |
+            |- qewd-apps
+                    |
+                    |- demo
+                         |
+                         |- deletePerson
+                               |
+                               |- index.js
+
+
+Here's my suggested logic for the two versions of the QEWD Back-end Handler for
+this message:
+
+### QEWD-JSdb Version
+
+        module.exports = function(messageObj, session, send, finished) {
+          if (!session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          if (!messageObj.params) {
+            return finished({error: 'No params present in request'});
+          }
+          let id = messageObj.params.id;
+           if (!id) {
+            return finished({error: 'id not defined in request'});
+          }
+
+          let person = this.db.use('Person', 'by_id', id);
+          if (!person.exists) {
+            return finished({error: 'No record exists with that id'});
+          }
+
+          person.delete();
+
+          finished({ok: true});
+        };
 
 
 
+### Cach&eacute;/IRIS Version
+
+        module.exports = function(messageObj, session, send, finished) {
+          if (!session.authenticated) {
+            return finished({error: 'Not authenticated'});
+          }
+
+          if (!messageObj.params) {
+            return finished({error: 'No params present in request'});
+          }
+          let id = messageObj.params.id;
+           if (!id || id === '') {
+            return finished({error: 'id not defined in request'});
+          }
+
+          let db = this.db.dbx;
+          let person = db.classmethod('User.Person', '%OpenId', id);
+          if (person === '') {
+            return finished({error: 'No record exists with that id'});
+          }
+
+          person.method('%Close');
+          db.classmethod('User.Person', '%DeleteId', id);
+
+          finished({ok: true});
+        };
 
 
+In both cases, we get the id from the incoming message (having first checked that
+the *id* is present) and then see if a *Person* record with that *id* exists.
+If so, it is deleted and a simple *{ok: true}* response is returned.
 
 
+## Try it Out
+
+You'll first need to use the *qewd-monitor-adminui* application to stop the Worker processes,
+to ensure that the *deletePerson* back-end handler method is available to you when needed.
+
+To summarise, [see here](https://github.com/robtweed/qewd-microservices-examples/tree/master/src/windows-iris-crud/stage_25) 
+to confirm what your application's folder layout and files should look like at this stage of this tutorial.
+
+Click your browser's *refresh* button, log in and click a *Delete*
+button for one of the rows of the Summary Table.  Then click the *Yes* button in the
+modal confirmation panel.  This time you'll get a *toastr* confirmation message popping up
+and the SUmmary Table will refresh: it will no longer contain the *Person* record you
+deleted.
+
+
+----
+
+# The Application is Complete!
+
+Congratulations, you now have a fully-working CRUD application to maintain a *Person* record,
+all packaged up using the Admin User Interface.
+
+Feel free to try out further customisations and perhaps try building out a version for one
+of your own database records.
+
+You can also add further menu options to the *sidebar* panel.  See the
+[wc-adminui library](https://github.com/robtweed/wc-admin-ui) for some ideas.
+You'll see an [examples folder](https://github.com/robtweed/wc-admin-ui/tree/master/examples)
+which you may find helpful.
+
+I hope you've found this tutorial useful.  Good luck and enjoy using QEWD and the
+*mg-webComponents* framework!
 
 

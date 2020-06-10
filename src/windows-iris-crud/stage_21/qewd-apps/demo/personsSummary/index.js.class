@@ -1,8 +1,4 @@
 module.exports = function(messageObj, session, send, finished) {
-
-  finished({summary: []});
-  return;
-
   if (!session.authenticated) {
     return finished({error: 'Not authenticated'});
   }
@@ -40,6 +36,6 @@ module.exports = function(messageObj, session, send, finished) {
    }
    query.cleanup();
 
-   finished({summary: results});
+  finished({summary: results});
 
 };

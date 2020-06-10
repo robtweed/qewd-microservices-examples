@@ -1,0 +1,23 @@
+module.exports = function(messageObj, session, send, finished) {
+  if (!session.authenticated) {
+    return finished({error: 'Not authenticated'});
+  }
+
+  if (!messageObj.params) {
+    return finished({error: 'No params present in request'});
+  }
+  let id = messageObj.params.id;
+   if (!id || id === '') {
+    return finished({error: 'id not defined in request'});
+  }
+
+  let db = this.db.dbx;
+  let person = db.classmethod('User.Person', '%OpenId', id);
+  let results = {
+    name: person.getproperty('Name'),
+    gender: person.getproperty('Gender'),
+    city: person.getproperty('City')
+  };
+  person.method('%Close'); 
+  finished({record: results});
+};

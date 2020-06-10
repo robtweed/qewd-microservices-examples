@@ -1,0 +1,52 @@
+module.exports = function(messageObj, session, send, finished) {
+  if (!session.authenticated) {
+    return finished({error: 'Not authenticated'});
+  }
+
+  if (!messageObj.params) {
+    return finished({error: 'No params present in request'});
+  }
+
+  let name = messageObj.params.name;
+  if (!name || name === '') {
+    return finished({error: 'Missing name value'});
+  }
+
+  let gender = messageObj.params.gender;
+  if (!gender || gender === '' || gender === 'invalid') {
+    return finished({error: 'Missing gender value'});
+  }
+
+  let city = messageObj.params.city;
+  if (!city || city === '') {
+    return finished({error: 'Missing city value'});
+  }
+
+  let persons = this.db.use('Person');
+
+  /*
+    Create a new Person Id by incrementing the id_counter value
+  */
+
+
+  let id = persons.$('id_counter').increment();
+
+  /*
+    Save the data for this new Person record
+  */
+
+  persons.$(['by_id', id]).setDocument({
+    name: name,
+    gender: gender,
+    city: city
+  }); 
+  
+  /*
+    Finish processing, and return the new Person id
+  */
+
+  finished({
+    ok: true,
+    id: id
+  });
+};
