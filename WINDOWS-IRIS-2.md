@@ -40,6 +40,10 @@ The instructions below explain how to create an interactive, browser-based appli
 using QEWD's WebSocket communication with a back-end running on Windows with
 either Cach&eacute; or IRIS.
 
+[Watch this video](https://www.youtube.com/watch?v=d-NICYqv_2s) for a preview of
+the application you'll build in the tutorial, and also for a summary of the technology
+stack used during development and for run-time.
+
 The back-end will implement a set of CRUD message handlers for a *Person* record implemented
 as both a QEWD-JSdb persistent JSON document and a Cach&eacute;/IRIS Class.
 
@@ -2879,7 +2883,7 @@ pre-built *adminui* WebComponent Assembly, aptly named *adminui-crud*.
 So let's see how it can be used.  Once again we'll do this in incremental stages.
 
 The *adminui-crud* Assembly Module is a bit different from the standard ones, in that it encapsulates
-a complete set of pre-determined functionality - the CRUD (Create, Retrieve, Update, Delete) 
+a complete set of pre-determined functionality - the CRUD (Create, Read, Update, Delete) 
 cycle for a record - but in a way that you can customise.
 
 
@@ -3770,7 +3774,7 @@ Person record.  Clicking the Save buttton should then display the newly added re
 should be able to keep adding records by repeating these steps, and the table will display all the records
 you've added.
 
-So you can see that we've now successfully implemented the Create and Retrieve steps of the CRUD cycle.  
+So you can see that we've now successfully implemented the Create and Read steps of the CRUD cycle.  
 
 ----
 
@@ -4402,7 +4406,7 @@ Click the browser's *refresh*
 button and log in.  You should now be able to create new *Person* records and edit/update
 existing ones.
 
-You now have the *Create*, *Retrieve* and *Update* steps of the CRUD cycle!
+You now have the *Create*, *Read* and *Update* steps of the CRUD cycle!
 
 
 ----
